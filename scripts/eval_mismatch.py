@@ -17,15 +17,16 @@ for index, row in metadata.iterrows():
     video_ID = int(row['Sample number']) - 1
     audio_ID = int(row['File'].split('_')[-1].split('.wav')[0])
 
-    video_filepath = args.video_folder / f"stimuli_noneaudiofilter_{mismatch_video_ID:0>3}_cut.mp4"
+    video_filepath = args.video_folder / f"stimuli_noneaudiofilter_{mismatch_video_ID:0>3}_13s.mp4"
     audio_filepath = args.audio_folder / f"tst_2022_v1_{audio_ID:0>3}.wav"
-    output_filepath = args.output_folder / f"stimuli_noneaudiofilter_{mismatch_video_ID:0>3}_cut_mismatched_{audio_ID:0>3}.mp4"
+    output_filepath = args.output_folder / f"stimuli_{video_ID:0>3}_mismatched-with_{mismatch_video_ID:0>3}_audio_{audio_ID:0>3}.mp4"
     
     # get audio stream segment
     audio_stream = ffmpeg.input(str(audio_filepath)).audio
     audio_stream = audio_stream.filter('atrim', start=row['Start'], end=row['End'])
     audio_stream = audio_stream.filter('asetpts', 'PTS-STARTPTS')
-    # get video stream
+
+    # get mismatched video stream
     video_stream = ffmpeg.input(str(video_filepath)).video
     # merge audio and video streams, and save to disk
     output_stream = ffmpeg.output(video_stream, audio_stream, str(output_filepath), **{"y": None, "shortest": None})
