@@ -29,5 +29,5 @@ for index, row in metadata.iterrows():
     # get mismatched video stream
     video_stream = ffmpeg.input(str(video_filepath)).video
     # merge audio and video streams, and save to disk
-    output_stream = ffmpeg.output(video_stream, audio_stream, str(output_filepath), **{"y": None, "shortest": None})
+    output_stream = ffmpeg.output(video_stream, audio_stream, str(output_filepath), **{"y": None, "shortest": None, "fflags": "shortest"})
     output_stream.run()
