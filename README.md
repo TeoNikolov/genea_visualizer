@@ -5,18 +5,20 @@
   <i>Example output from the visualization server</i>
 </p>
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Server Solution](#server-solution)
-  * [Limitations](#limitations)
-  * [Build and start visualization server](#build-and-start-visualization-server)
-  * [Using the visualization server](#using-the-visualization-server)
-  * [example.py](#examplepy)
-- [Blender Script](#blender-script)
-  * [Using Blender UI](#using-blender-ui)
-  * [Using command line](#using-command-line)
-- [Replicating the GENEA Challenge 2022 visualizations](#replicating-the-genea-challenge-2022-visualizations)
-- [Miscellaneous scripts](#miscellaneous-scripts)
+- [GENEA 2022 BVH Visualizer](#genea-2022-bvh-visualizer)
+  * [Introduction](#introduction)
+  * [Server Solution](#server-solution)
+    + [Limitations](#limitations)
+    + [Build and start visualization server](#build-and-start-visualization-server)
+    + [Using the visualization server](#using-the-visualization-server)
+    + [example.py](#examplepy)
+  * [Blender Script](#blender-script)
+    + [Using Blender UI](#using-blender-ui)
+    + [Using command line](#using-command-line)
+  * [Miscellaneous scripts](#miscellaneous-scripts)
+  * [Replicating the GENEA Challenge 2022 visualizations](#replicating-the-genea-challenge-2022-visualizations)
+- [Citation](#citation)
+- [Contact](#contact)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
@@ -121,8 +123,33 @@ On Windows, you may write something like this (on Windows):
 
 Tip: Tweak `--duration <frame count>`, `--res_x <value>`, and `--res_y <value>`, to smaller values to decrease render time and speed up your testing.
 
+## Miscellaneous scripts
+During the development of the visualizer, a variety of scripts were used for standardizing the data and processing video stimuli for subjective evaluation. The scripts are included in the `scripts` folder in case anyone needs to use them directly, or as reference, for solving similar tasks. Some scripts were not written in a user-friendly manner, and lack comments and argument parsing. Therefore, using some scripts may be cumbersome, so be ready for some manual fiddling (e.g. replacing hard-coded paths). Writing a short readme inside the scripts folder is on the backlog, but there is no telling when this will happen at the moment.
+
 ## Replicating the GENEA Challenge 2022 visualizations
 The parameters in the enclosed `.env` file correspond to the those used for rendering the final evaluation stimuli of the GENEA Challenge 2022, for ease of replication. As long as you clone this repo, build it using Docker, and input the BVH files used for the final visualization, you should be able to reproduce the results.
 
-## Miscellaneous scripts
-During the development of the visualizer, a variety of scripts were used for standardizing the data and processing video stimuli for subjective evaluation. The scripts are included in the `scripts` folder in case anyone needs to use them directly, or as reference, for solving similar tasks. Some scripts were not written in a user-friendly manner, and lack comments and argument parsing. Therefore, using some scripts may be cumbersome, so be ready for some manual fiddling (e.g. replacing hard-coded paths). Writing a short readme inside the scripts folder is on the backlog, but there is no telling when this will happen at the moment.
+
+# Citation
+If you use this material, please cite our latest paper on the GENEA Challenge 2022. At the time of writing (2022-07-29) this is our ACM ICMI 2022 paper. You can use the following BibTeX code to cite that work:
+
+```
+@inproceedings{yoon2022genea,
+  author={Yoon, Youngwoo and Wolfert, Pieter and Kucherenko, Taras and Viegas, Carla and Nikolov, Teodor and Tsakov, Mihail and Henter, Gustav Eje},
+  title={{T}he {GENEA} {C}hallenge 2022: {A} large evaluation of data-driven co-speech gesture generation},
+  booktitle={Proceedings of the ACM International Conference on Multimodal Interaction},
+  publisher={ACM},
+  series={ICMI '22},
+  year={2022}
+}
+```
+
+# Contact
+To find more GENEA Challenge 2022 material on the web, please see:
+* https://youngwoo-yoon.github.io/GENEAchallenge2022/
+* https://genea-workshop.github.io/2022/challenge/
+
+If you have any questions or comments, please contact:
+* Teodor Nikolov <tnikolov@hotmail.com>
+* Mihail Tsakov <tsakovm@gmail.com>
+* The GENEA Challenge & Workshop organisers <genea-contact@googlegroups.com>
