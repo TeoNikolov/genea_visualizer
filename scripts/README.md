@@ -1,6 +1,12 @@
 # Retargeting process
 The main issue with the raw data was that the skeletons were defined according to an unconventional pose. Instead, we wanted that pose to be a T-pose as it is an industry standard in animation. Particularly, it is recognizable, easier to modify and analyze, and I believe it has good rotation properties that would reduce the chance of gimbal locking. We processed the data so that the animations are defined according to a T-posed skeleton, and not the original, contorted one.
 
+<p align="center">
+  <img src="default_pose_comparison.png" alt="comparison between original and processed skeletal definition">
+  <br>
+  <i>Comparison between original and processed skeletal definition</i>
+</p>
+
 ## Scripts used
 `_data_mobu_tpose_bvh.py`
 This script is used in Autodesk MotionBuilder. It imports a BVH from the dataset containing animation data, and extracts a single-frame T-posed skeleton from it for further processing. The T-pose is extracted by importing an FBX file of an avatar which was already T-posed by an animator. By doing so, it was easy to extract a T-posed skeleton from the animation data by copying over the rotation values of the FBX skeleton to the BVH skeleton. The extracted BVH skeleton is then saved to disk temporarily.
