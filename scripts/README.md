@@ -1,11 +1,13 @@
 # Retargeting process
-The raw data has skeletons that are defined according to an unconventional pose. We wanted to change that pose to be a T-pose, which is an industry standard in animation. Particularly, it is recognizable, and easier to work with in 3D software. We processed the data so that the animations are defined according to a T-posed skeleton, and not the original one.
+The raw data has skeletons that are defined according to an unconventional and contorted pose. We wanted to change that pose to the animation industry standard T-pose, as it is recognizable, easier to work with in 3D software, and expected to have better mathematical properties. To elaborate on the latter, the T-pose would lead to a better distribution over the joint rotation values due to its symmetry and closer resemblance to the poses found in the motion capture data. This in turn should reduce the chance of gimbal locking. We processed the data so that the animations are defined according to a T-posed skeleton, and not the original one.
 
 <p align="center">
   <img src="default_pose_comparison.png" alt="comparison between original and processed skeletal definition">
   <br>
   <i>Comparison between original and processed skeletal definition</i>
 </p>
+
+_Note: Gimbal locking is unavoidable when working with Euler angles. What matters is the rotation order of joints, the expected axis for rotation, and the distribution of rotation values around 0 per axis. For joints such as the knee, we expect one axis to rotate, and gimbal locking is not an issue there. However, joints like the shoulder and neck can rotate in all three axes, so rotation order and distribution of rotation values per axis will be more impactful. For more info on gimbal locking, check [this explanation](https://www.youtube.com/watch?v=zc8b2Jo7mno) or [this example in Maya](https://www.youtube.com/watch?v=mP7BzA8IdWw)._
 
 ## Scripts used
 `_data_mobu_tpose_bvh.py`
