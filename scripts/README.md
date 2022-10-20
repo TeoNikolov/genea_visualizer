@@ -1,5 +1,5 @@
 # Retargeting process
-The main issue with the raw data was that the skeletons were defined according to an unconventional pose. Instead, we wanted that pose to be a T-pose as it is an industry standard in animation. Particularly, it is recognizable, easier to modify and analyze, and I believe it has good rotation properties that would reduce the chance of gimbal locking. We processed the data so that the animations are defined according to a T-posed skeleton, and not the original, contorted one.
+The raw data has skeletons that are defined according to an unconventional pose. We wanted to change that pose to be a T-pose, which is an industry standard in animation. Particularly, it is recognizable, and easier to work with in 3D software. We processed the data so that the animations are defined according to a T-posed skeleton, and not the original one.
 
 <p align="center">
   <img src="default_pose_comparison.png" alt="comparison between original and processed skeletal definition">
