@@ -1,7 +1,12 @@
 import os
+import argparse
+from pathlib import Path
 
-WORK_DIR = "C:/Users/tniko/Documents/Work/GENEA/TWH_DATASET/"
-OVERWRITE = False # set to True to force write the new files, otherwise you'll need to delete the files that you want to rewrite from disk
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("workdir", help="A relative or full path to the directory in which your data is located. Will output processed files in the same directory.")
+parser.add_argument("-f", "--force", action='store_true', help="Forces the writing of files, possibly overwriting existing ones. Will not overwrite your original files.")
+args = vars(parser.parse_args())
+WORK_DIR = Path(args['workdir']).resolve().as_posix()
 
 def process_bvh(source_file, target_file):
 	print('Processing ' + source_file)
@@ -36,6 +41,6 @@ for root, subdirs, files in os.walk(WORK_DIR):
 			source_bvh = root + '/' + f
 			target_bvh = root + '/' + f.split('.bvh')[0] + '_30fps.bvh'
 			# if the file has been made already and overwriting is not set to true
-			if os.path.exists(target_bvh) and not OVERWRITE:
+			if os.path.exists(target_bvh) and not args['force']:
 				continue
 			process_bvh(source_bvh, target_bvh)

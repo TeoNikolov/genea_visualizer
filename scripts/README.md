@@ -1,3 +1,4 @@
+
 # Retargeting process
 The raw data has skeletons that are defined according to an unconventional and contorted pose. We wanted to change that pose to the animation industry standard T-pose, as it is recognizable, easier to work with in 3D software, and expected to have better mathematical properties. To elaborate on the latter, the T-pose would lead to a better distribution over the joint rotation values due to its symmetry and closer resemblance to the poses found in the motion capture data. This in turn should reduce the chance of gimbal locking. We processed the data so that the animations are defined according to a T-posed skeleton, and not the original one.
 
@@ -9,7 +10,10 @@ The raw data has skeletons that are defined according to an unconventional and c
 
 _Note: Gimbal locking is unavoidable when working with Euler angles. What matters is the rotation order of joints, the expected axis for rotation, and the distribution of rotation values around 0 per axis. For joints such as the knee, we expect one axis to rotate, and gimbal locking is not an issue there. However, joints like the shoulder and neck can rotate in all three axes, so rotation order and distribution of rotation values per axis will be more impactful. For more info on gimbal locking, check [this explanation](https://www.youtube.com/watch?v=zc8b2Jo7mno) or [this example in Maya](https://www.youtube.com/watch?v=mP7BzA8IdWw)._
 
-## Scripts used
+# Scripts
+`data_downsample.py`
+This script downsamples the `.bvh` files from 120 fps to 30 fps. Under the hood, the script reads the `.bvh` files, deletes every 1st, 3rd, and 4th line, updates the time delta to 0.03333333 (30 fps) and saves a new `.bvh` file with a modified filename: `file.bvh` -> `file_30fps.bvh`
+
 `_data_mobu_tpose_bvh.py`
 This script is used in Autodesk MotionBuilder. It imports a BVH from the dataset containing animation data, and extracts a single-frame T-posed skeleton from it for further processing. The T-pose is extracted by importing an FBX file of an avatar which was already T-posed by an animator. By doing so, it was easy to extract a T-posed skeleton from the animation data by copying over the rotation values of the FBX skeleton to the BVH skeleton. The extracted BVH skeleton is then saved to disk temporarily.
 
@@ -25,3 +29,30 @@ This script is executed in Autodesk MotionBuilder. It takes the updated T-posed 
 
 `data_standardization_pipeline.py`
 This script launches Autodesk Maya and MotionBuilder, and passes the other scripts as launch arguments to the programs. This script is more like a user-interface, as you can specify various arguments to control the execution of the different pipeline stages above.
+
+# Running the scripts
+To reproduce the downsampling and retargeting processes, proceed as follows:
+
+1. **Clone the repository** on your computer somewhere.
+- You may have done this already.
+- Run `git clone https://github.com/TeoNikolov/genea_visualizer.git` in your terminal.
+
+2. Open terminal and **change your directory** to the `scripts\` directory.
+- `cd ./genea_visualizer/scripts/`
+
+3. **Prepare your motion data files**.
+- You can put them in the `scripts/data/` folder
+- You can put them anywhere on your system. Make sure to specify the correct path when running the scripts (more below).
+- There are example Talking With Hands `.bvh` data files already to test with.
+
+4. **Downsample** the motion data to 30 fps.
+- Run `python data_downsample.py .\data` in your terminal.
+
+5. **Retarget** the motion data.
+- Make sure you have [Maya](https://www.autodesk.com/products/maya/overview) and [MotionBuilder](https://www.autodesk.com/products/motionbuilder/overview) installed on your system.
+- Run `python data_standardization_pipeline.py ./data "30fps.bvh" --tpose --freeze --retarget -b`. If your motion data files are not in the `scripts/data/` folder, change `./data` to the correct directory.
+- You can also execute each step separately (useful for debugging issues):
+	- `python data_standardization_pipeline.py ./data "30fps.bvh" --tpose -b`
+	- `python data_standardization_pipeline.py ./data "30fps.bvh" --freeze -b`
+	- `python data_standardization_pipeline.py ./data "30fps.bvh" --retarget -b`
+- The `-b` flag prevents the Maya and MotionBuilder UI from opening, which will wait for you to close to continue with the other data processing stages. If there is a crash, you can disable this flag and check the console inside Maya and MotionBuilder for more information.

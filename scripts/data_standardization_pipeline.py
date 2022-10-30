@@ -1,14 +1,12 @@
 # This script runs a pipeline to t-pose the skeletons of the TalkingWithHands (TWH) dataset, and export 30fps BVH animations.
 # There are three main stages in this pipeline, each of which should be issued by specifying a flag in the command line.
-# Also make sure to have a look at the VARIABLES at after the Python imports below, and set accordingly. Most importantly, set the directory you want to work with for processing BVH files, as well as directories for MotionBuilder and Maya, and the relevant scripts (should be in the same folder as this script). Also set the location of the FBX file.
-#
+# Make sure to set the paths to the MotionBuilder and Maya directories containing their executables (see further below).
+
 # 1. (--tpose) Load MotionBuilder and import a T-posed FBX file containing the same skeletal structure as that found in the TWH dataset, as well as a BVH file containing the skeleton to be T-posed. The skeleton should be T-posed but MUST NOT have the joint rotations/orientations zeroed out (i.e. frozen). This is needed since rotations of the FBX skeleton are copied to the TWH skeleton, to preserve any differences in bone lengths. The t-posed skeleton is then exported as an FBX file.
-#
+
 # 2. (--freeze) Load Maya and import the FBX as exported from step 1. In Maya, the joint rotations and transformations are "frozen", which makes it that their rotation/orientation is set to 0 and becomes the new point of reference for the pose. This is essential in order to have a "proper" T-pose, where the pose is preserved after setting all joint rotations/orientations to 0. The T-posed skeleton is then exported to a new FBX file.
-#
+
 # 3. (--retarget) Load MotionBuilder and import the same BVH as in step 1, as well as the FBX file exported from step 2. This step retargets the original animation with the non-T-posed skeleton, to the correctly T-posed skeleton, using MotionBuilder's retargeting algorithm. The retargeted animation is plotted onto the T-posed skeleton, and exported as a 30FPS BVH file. The file contains the original animation as closely as possible with the original skeleton, except that the rest pose is now a proper T-pose.
-#
-#
 
 # A link that helped figure out part of the code.
 # https://discourse.techart.online/t/run-maya-and-execute-a-script/11999/7
@@ -19,17 +17,25 @@ import tempfile
 import argparse
 import sys
 import os
+from pathlib import Path
 
-# MotionBuilder and Maya settings
-MAYA_DIR = 'C:/Program Files/Autodesk/Maya2022/bin/' # got Maya? If yes, set this to the directory containing the binary (include a trailing slash)
+############################################################################################
+# Change the paths to the MotionBuilder and Maya directories on your computer			   #
+# The MotionBuilder and Maya directories contain the program executables (.exe on Windows) #
+# Make sure to include a trailing slash at the end of the string						   #
+############################################################################################
+
+MAYA_DIR = 'C:/Program Files/Autodesk/Maya2022/bin/'
 MOBU_DIR = 'C:/Program Files/Autodesk/MotionBuilder 2022/bin/x64/' # got MotionBuilder? If yes, set this to the directory containing the binary (include a trailing slash)
-FILE_MOBU_TPOSE_SCRIPT = r'C:\Users\tniko\Documents\Work\GENEA\Scripts\_data_mobu_tpose_bvh.py'
-FILE_MOBU_PLOT_ANIM_SCRIPT = r'C:\Users\tniko\Documents\Work\GENEA\Scripts\_data_mobu_plot_bvh.py'
-FILE_MAYA_FREEZE_SCRIPT = r'C:\Users\tniko\Documents\Work\GENEA\Scripts\_data_maya_freeze_transform.py'
-FILE_GENEA_FBX_ORIGINAL = 'C:/Users/tniko/Documents/Work/GENEA/Model/GenevaModel_v2_Tpose_texture-fix.fbx' # or any other file containing the same skeletal structure as the TWH dataset, making sure the joint rotations/orientations in the T-pose ARE NOT ZEROED OUT - check stage 1 in the instructions above
 
-# other settings
-OVERWRITE = False # set to True to force write the new files, otherwise you'll need to delete the files that you want to rewrite from disk
+######################################################
+# You do not need to change anything below this line #
+######################################################
+
+FILE_MOBU_TPOSE_SCRIPT = Path("_data_mobu_tpose_bvh.py").resolve().as_posix()
+FILE_MOBU_PLOT_ANIM_SCRIPT = Path("_data_mobu_plot_bvh.py").resolve().as_posix()
+FILE_MAYA_FREEZE_SCRIPT = Path("_data_maya_freeze_transform.py").resolve().as_posix()
+FILE_GENEA_FBX_ORIGINAL = Path("model/GenevaModel_v2_Tpose_texture-fix.fbx").resolve().as_posix() # or any other file containing the same skeletal structure as the TWH dataset, making sure the joint rotations/orientations in the T-pose ARE NOT ZEROED OUT - check stage 1 in the instructions above
 
 # wrappers for launching MotionBuilder and Maya executables
 def launch_mobu(mobu_path, python_script, run_batched=False, *additional_args):
@@ -111,6 +117,7 @@ args = vars(parser.parse_args())
 # remove trailing slash from work dir path
 if args['workdir'][-1] == '/' or args['workdir'][-1] == '\\':
 	args['workdir'] = args['workdir'][:-1]
+args['workdir'] = Path(args['workdir']).resolve().as_posix()
 
 for root, subdirs, files in os.walk(args['workdir']):
 	for f in files:
