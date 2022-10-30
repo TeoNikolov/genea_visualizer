@@ -33,22 +33,22 @@ This script launches Autodesk Maya and MotionBuilder, and passes the other scrip
 # Running the scripts
 To reproduce the downsampling and retargeting processes, proceed as follows:
 
-1. **Clone the repository** on your computer somewhere.
+Step 1: **Clone the repository** on your computer somewhere.
 - You may have done this already.
 - Run `git clone https://github.com/TeoNikolov/genea_visualizer.git` in your terminal.
 
-2. Open terminal and **change your directory** to the `scripts\` directory.
+Step 2: Open terminal and **change your directory** to the `scripts\` directory.
 - `cd ./genea_visualizer/scripts/`
 
-3. **Prepare your motion data files**.
+Step 3: **Prepare** your motion data files.
 - You can put them in the `scripts/data/` folder
 - You can put them anywhere on your system. Make sure to specify the correct path when running the scripts (more below).
 - There are example Talking With Hands `.bvh` data files already to test with.
 
-4. **Downsample** the motion data to 30 fps.
+Step 4: **Downsample** the motion data to 30 fps.
 - Run `python data_downsample.py .\data` in your terminal.
 
-5. **Retarget** the motion data.
+Step 5: **Retarget** the motion data.
 - Make sure you have [Maya](https://www.autodesk.com/products/maya/overview) and [MotionBuilder](https://www.autodesk.com/products/motionbuilder/overview) installed on your system.
 - Run `python data_standardization_pipeline.py ./data "30fps.bvh" --tpose --freeze --retarget -b`. If your motion data files are not in the `scripts/data/` folder, change `./data` to the correct directory.
 - You can also execute each step separately (useful for debugging issues):
@@ -56,3 +56,4 @@ To reproduce the downsampling and retargeting processes, proceed as follows:
 	- `python data_standardization_pipeline.py ./data "30fps.bvh" --freeze -b`
 	- `python data_standardization_pipeline.py ./data "30fps.bvh" --retarget -b`
 - The `-b` flag prevents the Maya and MotionBuilder UI from opening, which will wait for you to close to continue with the other data processing stages. If there is a crash, you can disable this flag and check the console inside Maya and MotionBuilder for more information.
+- If you want to normalize the root of the motion data, add the `--normalize-root` flag in your command.
