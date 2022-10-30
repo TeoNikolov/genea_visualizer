@@ -48,10 +48,11 @@ def import_BVH(file_path, take_name, namespace):
         o.ProcessObjectNamespace(FBNamespaceAction.kFBReplaceNamespace, "BVH", namespace)
     # remove extra reference node
     extra_ref_node = FBFindModelByLabelName(namespace + ':reference')
-    if len(extra_ref_node.Children) != 1:
-        raise RuntimeError('Talking With Hands reference node has mode than 1 child (assumes only 1 child/reference node)')
-    extra_ref_node.Children[0].Parent = None
-    extra_ref_node.FBDelete()
+    if extra_ref_node:
+        if len(extra_ref_node.Children) != 1:
+            raise RuntimeError('Talking With Hands reference node has mode than 1 child (assumes only 1 child/reference node)')
+        extra_ref_node.Children[0].Parent = None
+        extra_ref_node.FBDelete()
 
 def t_pose_TWH(twh_namespace, genea_namespace, reference_bone_name):
     twh_ref_bone = FBFindModelByLabelName(twh_namespace + ':' + reference_bone_name)
