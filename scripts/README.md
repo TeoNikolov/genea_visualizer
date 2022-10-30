@@ -57,3 +57,5 @@ Step 5: **Retarget** the motion data.
 	- `python data_standardization_pipeline.py ./data "30fps.bvh" --retarget -b`
 - The `-b` flag prevents the Maya and MotionBuilder UI from opening, which will wait for you to close to continue with the other data processing stages. If there is a crash, you can disable this flag and check the console inside Maya and MotionBuilder for more information.
 - If you want to normalize the root of the motion data, add the `--normalize-root` flag in your command.
+
+*Note: In principle, it is possible to use the `_data_mobu_tpose_bvh.py`, `_data_maya_freeze_transforms.py`, and `_data_mobu_plot_bvh.py` script files directly without calling `data_standardization_pipeline.py`. However, this is discouraged because these files must be executed **inside MotionBuilder / Maya**, which means you need to work your way around the UI and console. You would also need to update the variables yourself. Unless you want to change things on a low-level, it is advised that you execute the scripts using `data_standardization_pipeline.py` instead with the flags you want `--tpose`, `--freeze` or `--retarget`.*
