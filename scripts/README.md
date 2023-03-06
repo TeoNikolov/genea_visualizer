@@ -12,7 +12,7 @@ _Note: Gimbal locking is unavoidable when working with Euler angles. What matter
 
 # Scripts
 `data_downsample.py`
-This script downsamples the `.bvh` files from 120 fps to 30 fps. Under the hood, the script reads the `.bvh` files, deletes every 1st, 3rd, and 4th line, updates the time delta to 0.03333333 (30 fps) and saves a new `.bvh` file with a modified filename: `file.bvh` -> `file_30fps.bvh`
+This script downsamples the `.bvh` files from 90 fps to 30 fps. Under the hood, the script reads the `.bvh` files, deletes every 1st, 3rd, and 4th line, updates the time delta to 0.03333333 (30 fps) and saves a new `.bvh` file with a modified filename: `file.bvh` -> `file_30fps.bvh`
 
 `_data_mobu_tpose_bvh.py`
 This script is used in Autodesk MotionBuilder. It imports a BVH from the dataset containing animation data, and extracts a single-frame T-posed skeleton from it for further processing. The T-pose is extracted by importing an FBX file of an avatar which was already T-posed by an animator. By doing so, it was easy to extract a T-posed skeleton from the animation data by copying over the rotation values of the FBX skeleton to the BVH skeleton. The extracted BVH skeleton is then saved to disk temporarily.
