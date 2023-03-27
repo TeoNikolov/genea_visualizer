@@ -17,15 +17,13 @@ if USE_ARGS:
     FILE_GENEA_FBX = "MOBU_ARG_GENEA_FILENAME"
     FILE_FROZEN_SKELETON = "MAYA_ARG_FILE_FROZEN_SKELETON"
     FILE_BVH_EXPORTED = "MOBU_ARG_BVH_EXPORTED_FILENAME"
-    NORMALIZE_ROOT = "MOBU_ARG_NORMALIZE_ROOT"
 else:
     TAKE_NAME = 'session14_take5_hasFingers_deep5_scale_local_30fps'
     FILE_BVH = 'C:/Users/tniko/Documents/Work/GENEA/Data/Dev/' + TAKE_NAME + '.bvh'
     FILE_GENEA_FBX = 'C:/Users/tniko/Documents/Work/GENEA/Model/GenevaModel_v2_Tpose_texture-fix.fbx'
     FILE_FROZEN_SKELETON = 'C:/Users/tniko/Documents/Work/GENEA/Data/Dev/' + TAKE_NAME + '_TPOSED_SKELETON-frozen.fbx'
     FILE_BVH_EXPORTED = 'C:/Users/tniko/Documents/Work/GENEA/Data/Dev/' + TAKE_NAME + '-exported.bvh'  
-    NORMALIZE_ROOT = False
-    
+
 def import_FBX(file_path, namespace):
     if not os.path.exists(file_path):
         raise FileNotFoundError('The file does not exist: ' + file_path)
@@ -194,91 +192,6 @@ def plot_animation(twh_frozen_namespace):
     plotOptions.PlotPeriod = FBTime(0, 0, 0, 1)
     FBApplication().CurrentCharacter.PlotAnimation(FBCharacterPlotWhere.kFBCharacterPlotOnSkeleton, plotOptions)
 
-def normalize_root(twh_frozen_namespace, samples):
-    # compute sampling stride
-    total_frames = FBSystem().CurrentTake.LocalTimeSpan.GetStop().GetFrame()
-    frame_step = total_frames / samples
-    
-    # sample position and rotation values
-    reference_bone = FBFindModelByLabelName(twh_frozen_namespace + ':body_world')
-    hip_bone = FBFindModelByLabelName(twh_frozen_namespace + ':b_root')
-    pos_acc = [0, 0, 0]
-    fwd_acc = [0, 0, 0]
-    for i in range(samples):
-        frame = int(frame_step * i)
-        FBPlayerControl().Goto(FBTime(0,0,0,frame))
-        # position
-        pos_acc[0] += reference_bone.Translation[0]
-        pos_acc[1] += reference_bone.Translation[1]
-        pos_acc[2] += reference_bone.Translation[2]
-        # rotation
-        fwd = FBVector4d()
-        rot_mat = FBMatrix()
-        hip_bone.GetMatrix(rot_mat, FBModelTransformationType.kModelRotation, True)    
-        # rotate Z axis to obtain new forward vector (assumez Z is forward)
-        FBVectorMatrixMult(fwd, rot_mat, FBVector4d(0,0,1,0))
-        fwd[1] = 0
-        fwd_acc[0] += fwd[0]
-        fwd_acc[1] = 0
-        fwd_acc[2] += fwd[2]
-    
-    # compute average position and forward vector (normalized)
-    pos_acc = [x / samples for x in pos_acc]
-    fwd_acc = [x / samples for x in fwd_acc]
-    fwd_4d = FBVector4d(fwd_acc[0],fwd_acc[1],fwd_acc[2],0)
-    fwd_norm = math.sqrt(FBDot(fwd_4d, fwd_4d))
-    fwd_acc[0] = fwd_4d[0] / fwd_norm
-    fwd_acc[1] = fwd_4d[1] / fwd_norm
-    fwd_acc[2] = fwd_4d[2] / fwd_norm
-    # compute angle between the average forward vector and the Z-axis unit vector
-    angle = math.acos(FBDot(FBVector4d(0,0,1,0), FBVector4d(fwd_acc[0], fwd_acc[1], fwd_acc[2],0)))
-    angle = angle * (180 / math.pi)    
-    # if pointing towards X, invert the angle
-    if fwd_acc[0] > 0:
-        angle = -angle
-    
-    # interpolate the keys linearly, not cubic as it does automatically
-    reference_bone.Translation.GetAnimationNode().DefaultInterpolation = FBInterpolation.kFBInterpolationLinear
-    hip_bone.Rotation.GetAnimationNode().DefaultInterpolation = FBInterpolation.kFBInterpolationLinear
-    
-    ### process keyframes
-    FBPlayerControl().GotoStart()
-    i = 0
-    while (i <= total_frames):
-        ### rotation
-        # compute rotation matrix of "angle" degrees around the Y axis
-        y_rot_mat = FBMatrix()
-        FBRotationToMatrix(y_rot_mat, FBVector3d(0,angle,0), FBRotationOrder.kFBXYZ)
-        # multiply rotation around Y axis with the current rotation
-        rot_mat = FBMatrix()
-        hip_bone.GetMatrix(rot_mat, FBModelTransformationType.kModelRotation, False)
-        # set the new rotation
-        new_rot = FBVector3d()
-        FBMatrixToRotation(new_rot, y_rot_mat * rot_mat)
-        hip_bone.SetVector(new_rot, FBModelTransformationType.kModelRotation, False)
-        hip_bone.Rotation.Key()
-        
-        ### position
-        original_pos = FBVector3d()
-        reference_bone.GetVector(original_pos, FBModelTransformationType.kModelTranslation, False)
-        # subtract the average position
-        new_pos = FBVector4d(original_pos[0] - pos_acc[0], original_pos[1] - pos_acc[1], original_pos[2] - pos_acc[2],0)
-        # rotate the position w.r.t the hip rotation from earlier
-        new_pos_rot = FBVector4d()
-        FBVectorMatrixMult(new_pos_rot, y_rot_mat, new_pos)
-        new_pos_rot = FBVector3d(new_pos_rot[0], new_pos_rot[1], new_pos_rot[2])
-        reference_bone.SetVector(new_pos_rot, FBModelTransformationType.kModelTranslation, False)
-        reference_bone.Translation.Key()
-        
-        FBPlayerControl().StepForward()
-        i += 1
-        
-    # optimize curves with linear interpolation and unrolling filter to make values continuous
-    unroll_filter = FBFilterManager().CreateFilter('Unroll Rotations')
-    unroll_filter.Start = FBTime(0,0,0,0)
-    unroll_filter.Stop = FBTime(0,0,0,total_frames)
-    unroll_filter.Apply(hip_bone.Rotation.GetAnimationNode(), True)
-
 def export_BVH(output_path, twh_frozen_namespace):
     # center the root so translation is baked to 0,0,0 in BVH spec (does not alter the animation data)
     FBPlayerControl().GotoStart()
@@ -333,6 +246,6 @@ retarget(TWH_NAMESPACE, TWH_FROZEN_NAMESPACE, REFERENCE_BONE_NAME, CHARACTERIZAT
 
 # Plot the animation
 plot_animation(TWH_FROZEN_NAMESPACE)
-if NORMALIZE_ROOT:
-    normalize_root(TWH_FROZEN_NAMESPACE, 250)
+
+# Export
 export_BVH(FILE_BVH_EXPORTED, TWH_FROZEN_NAMESPACE)
