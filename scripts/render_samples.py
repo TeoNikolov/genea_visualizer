@@ -159,6 +159,15 @@ def import_BVH(filepath, take_name, namespace):
     extra_ref_node.Children[0].Parent = None
     extra_ref_node.FBDelete()
     FBSystem().Scene.NamespaceCleanup()
+    FBSystem().Scene.Evaluate()
+
+    # add a keyframe to constant anim tracks to prevent accidentally changing them
+    objList = FBComponentList()
+    FBFindObjectsByName(namespace + ":*", objList, True, False)
+    for o in objList:
+        if isinstance(o, FBModelSkeleton):
+            for n in o.AnimationNode.Nodes:
+                n.KeyCandidate()
 
 def t_pose_TWH(twh_namespace, genea_namespace, reference_bone_name, scene_type : SCENE_TYPE_ENUM):
     if scene_type == SCENE_TYPE_ENUM.UNPROCESSED:

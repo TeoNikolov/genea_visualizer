@@ -45,15 +45,19 @@ def import_FBX(file_path, namespace):
 def import_BVH(file_path, take_name, namespace):
     if not os.path.exists(file_path):
         raise FileNotFoundError('The file does not exist: ' + file_path)
+    
     # import BVH to current take
     FBApplication().FileImport(file_path, False, True)
+    
     # rename take for consistency
     FBSystem().CurrentTake.Name = take_name
+    
     # cleanup namespaces
     objList = FBComponentList()
     FBFindObjectsByName("BVH:*", objList, True, False)
     for o in objList:
         o.ProcessObjectNamespace(FBNamespaceAction.kFBReplaceNamespace, "BVH", namespace)
+
     # remove extra reference node
     extra_ref_node = FBFindModelByLabelName(namespace + ':reference')
     if len(extra_ref_node.Children) != 1:
@@ -61,6 +65,15 @@ def import_BVH(file_path, take_name, namespace):
     extra_ref_node.Children[0].Parent = None
     extra_ref_node.FBDelete()
     FBPlayerControl().SetTransportFps(FBTimeMode.kFBTimeMode30Frames)
+    FBSystem().Scene.Evaluate()
+
+    # add a keyframe to constant anim tracks to prevent accidentally changing them
+    objList = FBComponentList()
+    FBFindObjectsByName(namespace + ":*", objList, True, False)
+    for o in objList:
+        if isinstance(o, FBModelSkeleton):
+            for n in o.AnimationNode.Nodes:
+                n.KeyCandidate()
 
 def t_pose_TWH(twh_namespace, genea_namespace, twh_frozen_namespace, reference_bone_name):
     twh_ref_bone = FBFindModelByLabelName(twh_namespace + ':' + reference_bone_name)
@@ -110,6 +123,7 @@ def retarget(twh_namespace, twh_frozen_namespace, reference_bone_name, character
     twh_ref_bone = FBFindModelByLabelName(twh_namespace + ':' + reference_bone_name)
     twh_ref_bone.SetVector(FBVector3d(0, 0, 0), FBModelTransformationType.kModelRotation, False)
     # change retargeting settings
+    twh_frozen_character.PropertyList.Find('Character Solver', True).Data = 3
     twh_frozen_character.PropertyList.Find('Action Space Compensation Mode', True).Data = 0
     twh_frozen_character.PropertyList.Find('Hips Level Mode', True).Data = 0
     twh_frozen_character.PropertyList.Find('Feet Spacing Mode', True).Data = 0
@@ -283,18 +297,41 @@ TWH_NAMESPACE = "TWH"
 TWH_FROZEN_NAMESPACE= "TWH_FROZEN"
 REFERENCE_BONE_NAME = 'body_world'
 
+# Create empty scene
 FBApplication().FileNew()
-# import mocap data
+FBSystem().Scene.Evaluate()
+
+# Add empty T-posing and animation takes
+tpose_take = FBTake("tpose_take")
+FBSystem().Scene.Takes.append(tpose_take)
+work_take = FBTake("work_take")
+FBSystem().Scene.Takes.append(work_take)
+
+# Import mocap animation
+FBSystem().CurrentTake = work_take
 import_BVH(FILE_BVH, TAKE_NAME, TWH_NAMESPACE)
-# import GENEA model to align the mocap skeleton
+FBSystem().Scene.Evaluate()
+
+# Import GENEA model (for aligning mocap skeleton)
 import_FBX(FILE_GENEA_FBX, GENEA_NAMESPACE)
-# import the fixed t-pose mocap skeleton
+FBSystem().Scene.Evaluate()
+
+# Import the fixed t-pose mocap skeleton
 import_FBX(FILE_FROZEN_SKELETON, TWH_FROZEN_NAMESPACE)
+FBSystem().Scene.Evaluate()
+
+# T-pose skeletons
+FBSystem().CurrentTake = tpose_take
 t_pose_TWH(TWH_NAMESPACE, GENEA_NAMESPACE, TWH_FROZEN_NAMESPACE, REFERENCE_BONE_NAME)
-# delete GENEA model
+
+# Delete GENEA model
 FBDeleteObjectsByName("", GENEA_NAMESPACE)
-# do retargeting
+
+# Retargeting
+FBSystem().CurrentTake = work_take
 retarget(TWH_NAMESPACE, TWH_FROZEN_NAMESPACE, REFERENCE_BONE_NAME, CHARACTERIZATION_FILES_DIR + CHARACTERIZAION_FILE)
+
+# Plot the animation
 plot_animation(TWH_FROZEN_NAMESPACE)
 if NORMALIZE_ROOT:
     normalize_root(TWH_FROZEN_NAMESPACE, 250)
