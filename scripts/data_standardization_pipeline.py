@@ -98,14 +98,17 @@ def mobu_plot_animation(mobu_dir, clip_name, file_bvh, file_genea_fbx, file_froz
 			tf.writelines(script_text)
 		launch_mobu(mobu_dir + 'motionbuilder.exe', temp_file, run_batched=run_batched)
 
-def mobu_normalize_root(mobu_dir, clip_name, file_bvh, file_bvh_export, python_script_path, run_batched=True):
+def mobu_normalize_root(mobu_dir, clip_name, file_bvh, file_bvh_facing, file_bvh_export, file_bvh_export_facing, python_script_path, is_dyadic, run_batched=True):
 	script_text = ""
 	with open(python_script_path, 'r') as pf:
 		script_text = pf.read()
 		script_text = script_text.replace('USE_ARGS=False', 'USE_ARGS=True')
 		script_text = script_text.replace('MOBU_ARG_TAKE_NAME', clip_name)
 		script_text = script_text.replace('MOBU_ARG_BVH_FILENAME', file_bvh)
+		script_text = script_text.replace('MOBU_ARG_BVH_FACING_FILENAME', file_bvh_facing)
 		script_text = script_text.replace('MOBU_ARG_BVH_EXPORTED_FILENAME', file_bvh_export)
+		script_text = script_text.replace('MOBU_ARG_BVH_EXPORTED_FACING_FILENAME', file_bvh_export_facing)
+		script_text = script_text.replace('MOBU_ARG_DYADIC', str(is_dyadic))
 
 	with tempfile.TemporaryDirectory() as td:
 		temp_file = td + '\\temp_mobu_normroot.py'
@@ -127,6 +130,7 @@ parser.add_argument("--freeze", action='store_true', help="Launch Autodesk Maya 
 parser.add_argument("--retarget", action='store_true', help="Launch Autodesk MotionBuilder and retarget the animation of a BVH file with non-tposed skeleton, to a t-posed skeleton as exported using the --tpose and --freeze flags. Exports a 30 FPS BVH animation.")
 parser.add_argument("--normalize-root", action='store_true', help="Normalize the root bone during retargeting so that the translation is around (0,0,0) on average, and rotation is pointing towards Z on average.")
 parser.add_argument("-f", "--force", action='store_true', help="Forces the writing of files, possibly overwriting existing ones.")
+parser.add_argument("-d", "--dyadic", action='store_true', help="Configure the script for processing data in a dyadic setting. Currently used during root normalization only.")
 args = vars(parser.parse_args())
 
 # remove trailing slash from work dir path
@@ -140,12 +144,28 @@ for root, subdirs, files in os.walk(args['workdir']):
 			ROOT_DIR = root.replace('\\', '/') + "/"
 			CLIP_NAME = f.split('.bvh')[0]
 
-			FILE_BVH = ROOT_DIR + CLIP_NAME + '.bvh'
-			FILE_TPOSE_SKELETON = ROOT_DIR + CLIP_NAME + '_TPOSED_SKELETON.fbx'
-			FILE_FROZEN_SKELETON = ROOT_DIR + CLIP_NAME + '_TPOSED_SKELETON-frozen.fbx'
-			FILE_BVH_EXPORT = ROOT_DIR + CLIP_NAME + '-exported.bvh'
-			FILE_BVH_NORMALIZE_EXPORT = ROOT_DIR + CLIP_NAME + '-normalized.bvh'
-			
+			FILE_BVH                         = ROOT_DIR + CLIP_NAME + '.bvh'
+			FILE_TPOSE_SKELETON              = ROOT_DIR + CLIP_NAME + '_TPOSED_SKELETON.fbx'
+			FILE_FROZEN_SKELETON             = ROOT_DIR + CLIP_NAME + '_TPOSED_SKELETON-frozen.fbx'
+			FILE_BVH_EXPORT                  = ROOT_DIR + CLIP_NAME + '-exported.bvh'
+			FILE_BVH_NORMALIZE_EXPORT        = ROOT_DIR + CLIP_NAME + '-normalized.bvh'
+			FILE_BVH_EXPORT_FACING           = '' # used in dyadic normalization
+			FILE_BVH_NORMALIZE_EXPORT_FACING = '' # used in dyadic normalization
+
+			if args["dyadic"]:
+				matching_files = list(Path(ROOT_DIR).glob("*" + args['match-token'] + "*"))
+				
+				clip_name_faced = []
+				for candidate_file in matching_files:
+					if ("deep" in CLIP_NAME and "shallow" in str(candidate_file)) or ("shallow" in CLIP_NAME and "deep" in str(candidate_file)):
+						clip_name_faced.append(candidate_file)
+
+				if len(clip_name_faced) != 1:
+					raise RuntimeError("There should be a single matching file for this clip.")
+
+				FILE_BVH_EXPORT_FACING = (clip_name_faced[0].parent / (clip_name_faced[0].stem + "-exported.bvh")).as_posix()
+				FILE_BVH_NORMALIZE_EXPORT_FACING = (clip_name_faced[0].parent / (clip_name_faced[0].stem + "-normalized-faced.bvh")).as_posix()
+
 			print("BVH: Processing \"" + FILE_BVH + "\".")
 
 			if args['tpose']:
@@ -177,8 +197,8 @@ for root, subdirs, files in os.walk(args['workdir']):
 
 			if args['normalize_root']:
 				print('STAGE: Normalizing')
-				if not os.path.exists(FILE_BVH_NORMALIZE_EXPORT) or args['force']:
-					mobu_normalize_root(MOBU_DIR, CLIP_NAME, FILE_BVH_EXPORT, FILE_BVH_NORMALIZE_EXPORT, FILE_MOBU_NORMALIZE_ROOT_SCRIPT, run_batched=args['batched'])
+				if not os.path.exists(FILE_BVH_NORMALIZE_EXPORT) or (args["dyadic"] and not os.path.exists(FILE_BVH_NORMALIZE_EXPORT_FACING)) or args['force']:
+					mobu_normalize_root(MOBU_DIR, CLIP_NAME, FILE_BVH_EXPORT, FILE_BVH_EXPORT_FACING, FILE_BVH_NORMALIZE_EXPORT, FILE_BVH_NORMALIZE_EXPORT_FACING, FILE_MOBU_NORMALIZE_ROOT_SCRIPT, args["dyadic"], run_batched=args['batched'])
 					if not os.path.exists(FILE_BVH_NORMALIZE_EXPORT):
 						raise RuntimeError('ERROR: Stage 4 (root normalization) failed to export a BVH file!')
 				else:
