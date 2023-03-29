@@ -1,3 +1,7 @@
+**Note:** The `master` branch is now dedicated to GENEA Challenge **2023**. If you wish to use the files from GENEA Challenge 2022, please switch to the `archive_2022` branch: https://github.com/TeoNikolov/genea_visualizer/tree/archive_2022
+
+**Warning:** This README is currently work-in-progress. Therefore, it may contain outdated and incorrect information about the visualizer and data processing scripts that will be used in GENEA Challenge 2023.
+
 # GENEA 2022 BVH Visualizer
 <p align="center">
   <img src="demo.gif" alt="example from visualization server">
