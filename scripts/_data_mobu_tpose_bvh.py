@@ -1,8 +1,6 @@
 from pyfbsdk import *
 from pyfbsdk_additions import *
 import os
-import xml.etree.ElementTree as etree
-import random
 
 # Set to False when trying to run script from within Maya
 # Set to True to mimic command line arguments when reading the script as text (i.e. replace the argument placeholders externally using string.replace() )
@@ -14,10 +12,7 @@ if USE_ARGS:
     FILE_GENEA_FBX = 'MOBU_ARG_GENEA_FILENAME'
     FILE_TPOSED_SKELETON = 'MAYA_ARG_FILE_TPOSED_SKELETON'
 else:
-    TAKE_NAME = 'session15_take18_noFingers_deep5_scale_local_30fps'
-    FILE_BVH = 'C:/Users/tniko/Documents/Work/GENEA/TWH_DATASET/session15_take18/' + TAKE_NAME + '.bvh'
-    FILE_GENEA_FBX = 'C:/Users/tniko/Documents/Work/GENEA/Model/GenevaModel_v2_Tpose_texture-fix.fbx'
-    FILE_TPOSED_SKELETON = 'C:/Users/tniko/Documents/Work/GENEA/TWH_DATASET/session15_take18/' + TAKE_NAME + '_TPOSED_SKELETON.fbx'
+    raise RuntimeError("This script is templated and cannot be executed directly. Its arguments must be set externally.")
 
 def import_FBX(file_path, namespace):
     if not os.path.exists(file_path):

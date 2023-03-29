@@ -2,27 +2,20 @@ from pyfbsdk import *
 from pyfbsdk_additions import *
 import os
 import xml.etree.ElementTree as etree
-import random
-import math
 
 # Set to False when trying to run script from within Maya
 # Set to True to mimic command line arguments when reading the script as text (i.e. replace the argument placeholders externally using string.replace() )
 USE_ARGS=False
 
-CHARACTERIZATION_FILES_DIR = 'C:/Users/tniko/AppData/Roaming/Autodesk/HIKCharacterizationTool6/template/'
-CHARACTERIZAION_FILE = 'TalkingWithHands_Roll.xml'
 if USE_ARGS:
     TAKE_NAME = "MOBU_ARG_TAKE_NAME"
     FILE_BVH = "MOBU_ARG_BVH_FILENAME"
     FILE_GENEA_FBX = "MOBU_ARG_GENEA_FILENAME"
     FILE_FROZEN_SKELETON = "MAYA_ARG_FILE_FROZEN_SKELETON"
     FILE_BVH_EXPORTED = "MOBU_ARG_BVH_EXPORTED_FILENAME"
+    FILE_CHARACTERIZATION = "MOBU_ARG_CHARACTERIZATION_FILENAME"
 else:
-    TAKE_NAME = 'session14_take5_hasFingers_deep5_scale_local_30fps'
-    FILE_BVH = 'C:/Users/tniko/Documents/Work/GENEA/Data/Dev/' + TAKE_NAME + '.bvh'
-    FILE_GENEA_FBX = 'C:/Users/tniko/Documents/Work/GENEA/Model/GenevaModel_v2_Tpose_texture-fix.fbx'
-    FILE_FROZEN_SKELETON = 'C:/Users/tniko/Documents/Work/GENEA/Data/Dev/' + TAKE_NAME + '_TPOSED_SKELETON-frozen.fbx'
-    FILE_BVH_EXPORTED = 'C:/Users/tniko/Documents/Work/GENEA/Data/Dev/' + TAKE_NAME + '-exported.bvh'  
+    raise RuntimeError("This script is templated and cannot be executed directly. Its arguments must be set externally.")
 
 def import_FBX(file_path, namespace):
     if not os.path.exists(file_path):
@@ -242,7 +235,7 @@ FBDeleteObjectsByName("", GENEA_NAMESPACE)
 
 # Retargeting
 FBSystem().CurrentTake = work_take
-retarget(TWH_NAMESPACE, TWH_FROZEN_NAMESPACE, REFERENCE_BONE_NAME, CHARACTERIZATION_FILES_DIR + CHARACTERIZAION_FILE)
+retarget(TWH_NAMESPACE, TWH_FROZEN_NAMESPACE, REFERENCE_BONE_NAME, FILE_CHARACTERIZATION)
 
 # Plot the animation
 plot_animation(TWH_FROZEN_NAMESPACE)

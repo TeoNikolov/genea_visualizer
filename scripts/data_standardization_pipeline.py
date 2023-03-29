@@ -25,8 +25,8 @@ from pathlib import Path
 # Make sure to include a trailing slash at the end of the string						   #
 ############################################################################################
 
-MAYA_DIR = 'C:/Program Files/Autodesk/Maya2022/bin/'
-MOBU_DIR = 'C:/Program Files/Autodesk/MotionBuilder 2022/bin/x64/' # got MotionBuilder? If yes, set this to the directory containing the binary (include a trailing slash)
+MAYA_DIR = 'C:/Program Files/Autodesk/Maya2023/bin/'
+MOBU_DIR = 'C:/Program Files/Autodesk/MotionBuilder 2023/bin/x64/'
 
 ######################################################
 # You do not need to change anything below this line #
@@ -36,7 +36,8 @@ FILE_MOBU_TPOSE_SCRIPT = Path("_data_mobu_tpose_bvh.py").resolve().as_posix()
 FILE_MOBU_PLOT_ANIM_SCRIPT = Path("_data_mobu_plot_bvh.py").resolve().as_posix()
 FILE_MOBU_NORMALIZE_ROOT_SCRIPT = Path("_data_normalize_root.py").resolve().as_posix()
 FILE_MAYA_FREEZE_SCRIPT = Path("_data_maya_freeze_transform.py").resolve().as_posix()
-FILE_GENEA_FBX_ORIGINAL = Path("model/GenevaModel_v2_Tpose_texture-fix.fbx").resolve().as_posix() # or any other file containing the same skeletal structure as the TWH dataset, making sure the joint rotations/orientations in the T-pose ARE NOT ZEROED OUT - check stage 1 in the instructions above
+FILE_GENEA_FBX_ORIGINAL = Path("model/GenevaModel_v2_Tpose_texture-fix.fbx").resolve().as_posix()
+FILE_GENEA_CHARACTERIZATION = Path("model/TalkingWithHands_Roll.xml").resolve().as_posix()
 
 # wrappers for launching MotionBuilder and Maya executables
 def launch_mobu(mobu_path, python_script, run_batched=False, *additional_args):
@@ -81,7 +82,7 @@ def maya_freeze_transforms(maya_dir, file_tpose_skeleton, file_frozen_skeleton, 
 		launch_maya(executable, python_script, 7)
 
 ### import fixed skeleton in MoBu, retarget, plot animation, and export new BVH
-def mobu_plot_animation(mobu_dir, clip_name, file_bvh, file_genea_fbx, file_frozen_skeleton, file_bvh_export, python_script_path, run_batched=True):
+def mobu_plot_animation(mobu_dir, clip_name, file_bvh, file_genea_fbx, file_frozen_skeleton, file_bvh_export, file_characterization, python_script_path, run_batched=True):
 	script_text = ""
 	with open(python_script_path, 'r') as pf:
 		script_text = pf.read()
@@ -91,6 +92,7 @@ def mobu_plot_animation(mobu_dir, clip_name, file_bvh, file_genea_fbx, file_froz
 		script_text = script_text.replace('MOBU_ARG_GENEA_FILENAME', file_genea_fbx)
 		script_text = script_text.replace('MAYA_ARG_FILE_FROZEN_SKELETON', file_frozen_skeleton)
 		script_text = script_text.replace('MOBU_ARG_BVH_EXPORTED_FILENAME', file_bvh_export)
+		script_text = script_text.replace('MOBU_ARG_CHARACTERIZATION_FILENAME', file_characterization)
 
 	with tempfile.TemporaryDirectory() as td:
 		temp_file = td + '\\temp_mobu_plot.py'
@@ -192,7 +194,7 @@ for root, subdirs, files in os.walk(args['workdir']):
 			if args['retarget']:
 				print('STAGE: Retargeting')
 				if not os.path.exists(FILE_BVH_EXPORT) or args['force']:
-					mobu_plot_animation(MOBU_DIR, CLIP_NAME, FILE_BVH, FILE_GENEA_FBX_ORIGINAL, FILE_FROZEN_SKELETON, FILE_BVH_EXPORT, FILE_MOBU_PLOT_ANIM_SCRIPT, run_batched=args['batched'])
+					mobu_plot_animation(MOBU_DIR, CLIP_NAME, FILE_BVH, FILE_GENEA_FBX_ORIGINAL, FILE_FROZEN_SKELETON, FILE_BVH_EXPORT, FILE_GENEA_CHARACTERIZATION, FILE_MOBU_PLOT_ANIM_SCRIPT, run_batched=args['batched'])
 					if not os.path.exists(FILE_BVH_EXPORT):
 						raise RuntimeError('ERROR: Stage 3 (retargeting) failed to export a BVH of retargeted animation onto the frozen, t-posed skeleton!')
 				else:
