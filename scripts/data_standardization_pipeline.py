@@ -133,6 +133,9 @@ parser.add_argument("-f", "--force", action='store_true', help="Forces the writi
 parser.add_argument("-d", "--dyadic", action='store_true', help="Configure the script for processing data in a dyadic setting. Currently used during root normalization only.")
 args = vars(parser.parse_args())
 
+if args["dyadic"] and args["retarget"] and args["normalize_root"]:
+	raise RuntimeError("You cannot retarget and normalize dyadic at the same time. You must \"retarget\" first, and then \"normalize-root\".")
+
 # remove trailing slash from work dir path
 if args['workdir'][-1] == '/' or args['workdir'][-1] == '\\':
 	args['workdir'] = args['workdir'][:-1]
@@ -145,6 +148,8 @@ for root, subdirs, files in os.walk(args['workdir']):
 			CLIP_NAME = f.split('.bvh')[0]
 
 			FILE_BVH                         = ROOT_DIR + CLIP_NAME + '.bvh'
+			print("BVH: Processing \"" + FILE_BVH + "\".")
+
 			FILE_TPOSE_SKELETON              = ROOT_DIR + CLIP_NAME + '_TPOSED_SKELETON.fbx'
 			FILE_FROZEN_SKELETON             = ROOT_DIR + CLIP_NAME + '_TPOSED_SKELETON-frozen.fbx'
 			FILE_BVH_EXPORT                  = ROOT_DIR + CLIP_NAME + '-exported.bvh'
@@ -165,8 +170,6 @@ for root, subdirs, files in os.walk(args['workdir']):
 
 				FILE_BVH_EXPORT_FACING = (clip_name_faced[0].parent / (clip_name_faced[0].stem + "-exported.bvh")).as_posix()
 				FILE_BVH_NORMALIZE_EXPORT_FACING = (clip_name_faced[0].parent / (clip_name_faced[0].stem + "-normalized-faced.bvh")).as_posix()
-
-			print("BVH: Processing \"" + FILE_BVH + "\".")
 
 			if args['tpose']:
 				print('STAGE: T-Posing')
