@@ -32,7 +32,8 @@ def clear_scene():
     bpy.ops.sequencer.select_all(action='SELECT')
     bpy.ops.sequencer.delete()
     
-def setup_scene(cam_pos, cam_rot, actor1, actor2):
+def setup_scene(cam_pos, cam_rot, actor1, actor2, arm1, arm2):
+    
     # Camera Main
     name = 'Main'
     add_camera(cam_pos, cam_rot, name)
@@ -41,14 +42,26 @@ def setup_scene(cam_pos, cam_rot, actor1, actor2):
     # readjust camera that views both actors
     
     # Camera actor 1
-    actor1_pos = actor1.children[0]
-    actor1_pos.name = 'actor1_loc'
-    add_camera(actor1_pos.location, cam_rot, actor1.name)
+    actor1c = actor1.children[0]
+    actor1c.name = 'actor1_loc'
+    arm1 = bpy.data.objects[arm1]
+    actor1_bvh_offset_x = arm1.matrix_world @ arm1.data.bones['body_world'].head_local
+    actor1_bvh_offset_y = arm1.matrix_world @ arm1.data.bones['b_root'].head_local
+    actor1_bvh_offset_z = Vector((0, 0, 1.5)) + (arm1.matrix_world @ arm1.data.bones['body_world'].head_local)
+    cam_pos = [actor1_bvh_offset_x[0], actor1_bvh_offset_y[1], actor1_bvh_offset_z[2]]
+    cam_rot = [math.radians(75), 0, math.radians(90)]
+    add_camera(cam_pos, cam_rot, actor1.name)
     
     # Camera actor 2
-    actor2_pos = actor2.children[0]
-    actor2_pos.name = 'actor2_loc'
-    add_camera(actor1_pos.location, cam_rot, actor2.name)
+    actor2c = actor2.children[0]
+    actor2c.name = 'actor2_loc'
+    arm2 = bpy.data.objects[arm2]
+    actor2_bvh_offset_x = arm2.matrix_world @ arm2.data.bones['body_world'].head_local
+    actor2_bvh_offset_y = arm2.matrix_world @ arm2.data.bones['b_root'].head_local
+    actor2_bvh_offset_z = Vector((0, 0, 1.5)) + (arm2.matrix_world @ arm2.data.bones['body_world'].head_local)
+    cam_pos = [actor2_bvh_offset_x[0], actor2_bvh_offset_y[1], actor2_bvh_offset_z[2]]
+    cam_rot = [math.radians(75), 0, math.radians(-90)]
+    add_camera(cam_pos, cam_rot, actor2.name)
     
     # Floor Plane
     bpy.ops.mesh.primitive_plane_add(size=20, location=[0, 0, 0], rotation=[0, 0, 0])
@@ -61,10 +74,22 @@ def setup_scene(cam_pos, cam_rot, actor1, actor2):
 def add_camera(cam_pos, cam_rot, name):
     bpy.ops.object.camera_add(enter_editmode=False, location=cam_pos, rotation=cam_rot)
     cam = bpy.data.objects['Camera']
-    cam.scale = [20, 20, 20]
-    cam.data.lens = 30
+    cam.scale = [5, 25, 5]
+    cam.data.lens = 25
     cam.name = name + '_cam'
     bpy.context.scene.camera = cam # add cam so it's rendered
+    
+def setup_characters(actor1, actor2):
+    arm1 = bpy.context.scene.objects[actor1]
+    arm2 = bpy.context.scene.objects[actor2]
+    arm1.location = [1, 0, 0]
+    arm1.rotation_euler[2] = math.radians(-90)
+    arm2.location = [-1, 0, 0]
+    arm2.rotation_euler[2] = math.radians(90)
+    
+def get_camera(name):
+    cam = bpy.data.objects[name]
+    bpy.context.scene.camera = cam
 
 def remove_bone(armature, bone_name):
     bpy.ops.object.mode_set(mode='EDIT')
@@ -142,7 +167,7 @@ def load_audio(filepath):
         frame_start=0
     )
     
-def render_video(output_dir, picture, video, bvh_fname, render_frame_start, render_frame_length, res_x, res_y):
+def render_video(output_dir, picture, video, bvh1_fname, bvh2_fname, actor1, actor2, render_frame_start, render_frame_length, res_x, res_y):
     bpy.context.scene.render.engine = 'BLENDER_WORKBENCH'
     bpy.context.scene.display.shading.light = 'MATCAP'
     bpy.context.scene.display.render_aa = 'FXAA'
@@ -156,7 +181,20 @@ def render_video(output_dir, picture, video, bvh_fname, render_frame_start, rend
     
     if picture:
         bpy.context.scene.render.image_settings.file_format='PNG'
-        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}.png'.format(bvh_fname))
+        get_camera('Main_cam')
+        bpy.data.objects[actor1].children[1].hide_render = False
+        bpy.data.objects[actor2].children[1].hide_render = False
+        bpy.context.scene.render.filepath=os.path.join(output_dir, 'Main.png')
+        bpy.ops.render.render(write_still=True)
+        get_camera(actor1 + '_cam')
+        bpy.data.objects[actor1].children[1].hide_render = True
+        bpy.data.objects[actor2].children[1].hide_render = False
+        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}.png'.format(bvh1_fname))
+        bpy.ops.render.render(write_still=True)
+        get_camera(actor2 + '_cam')
+        bpy.data.objects[actor1].children[1].hide_render = False
+        bpy.data.objects[actor2].children[1].hide_render = True
+        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}.png'.format(bvh2_fname))
         bpy.ops.render.render(write_still=True)
         
     if video:
@@ -168,7 +206,20 @@ def render_video(output_dir, picture, video, bvh_fname, render_frame_start, rend
         bpy.context.scene.render.ffmpeg.constant_rate_factor='HIGH'
         bpy.context.scene.render.ffmpeg.audio_codec='MP3'
         bpy.context.scene.render.ffmpeg.gopsize = 30
-        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_'.format(bvh_fname))
+        get_camera('Main_cam')
+        bpy.data.objects[actor1].children[1].hide_render = False
+        bpy.data.objects[actor2].children[1].hide_render = False
+        bpy.context.scene.render.filepath=os.path.join(output_dir, 'Main_')
+        bpy.ops.render.render(animation=True, write_still=True)
+        get_camera(actor1 + '_cam')
+        bpy.data.objects[actor1].children[1].hide_render = True
+        bpy.data.objects[actor2].children[1].hide_render = False
+        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_'.format(bvh1_fname))
+        bpy.ops.render.render(animation=True, write_still=True)
+        get_camera(actor2 + '_cam')
+        bpy.data.objects[actor1].children[1].hide_render = False
+        bpy.data.objects[actor2].children[1].hide_render = True
+        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_'.format(bvh2_fname))
         bpy.ops.render.render(animation=True, write_still=True)
 
 def parse_args():
@@ -201,13 +252,13 @@ def main():
         ##### SET ARGUMENTS MANUALLY #####
         ##### IF RUNNING BLENDER GUI #####
         ##################################
-        ARG_BVH1_PATHNAME = SCRIPT_DIR / 'test/session14_take5' / 'deep5.bvh'
-        ARG_BVH2_PATHNAME = SCRIPT_DIR / 'test/session14_take5' / 'shallow12.bvh'
-        ARG_AUDIO_FILE_NAME = SCRIPT_DIR / 'test/session14_take5' / 'session14_take5.wav' # set to None for no audio
-        ARG_IMAGE = False
+        ARG_BVH1_PATHNAME = SCRIPT_DIR / 'test/' / 'session15_take17_noFingers_deep5_SL_30fps-normalized.bvh'
+        ARG_BVH2_PATHNAME = SCRIPT_DIR / 'test/' / 'session15_take17_noFingers_shallow13_SL_30fps-normalized-faced.bvh'
+#        ARG_AUDIO_FILE_NAME = SCRIPT_DIR / 'test/session14_take5' / 'session14_take5.wav' # set to None for no audio
+        ARG_IMAGE = True
         ARG_VIDEO = False
         ARG_START_FRAME = 0
-        ARG_DURATION_IN_FRAMES = 3600
+        ARG_DURATION_IN_FRAMES = 360
         ARG_ROTATE = 'default'
         ARG_RESOLUTION_X = 1024
         ARG_RESOLUTION_Y = 768
@@ -256,13 +307,22 @@ def main():
     add_materials(SCRIPT_DIR, OBJ2_friendly_name)
     load_bvh(str(ARG_BVH2_PATHNAME))
     constraintBoneTargets(armature = OBJ2_friendly_name, rig = BVH2_NAME, mode = ARG_MODE)
+#    setup_characters(BVH1_NAME, BVH2_NAME)
     
+    print(ARG_OUTPUT_DIR)
+    
+    # 05/04/2023 fix main camera orientation, fix character rotation and personal cameras
     if ARG_MODE == "full_body":     CAM_POS = [0, -3, 1.1]
     elif ARG_MODE == "upper_body":  CAM_POS = [0, -2.45, 1.3]
-    CAM_ROT = [math.radians(90), 0, 0]
-    setup_scene(CAM_POS, CAM_ROT, bpy.data.objects[OBJ1_friendly_name], bpy.data.objects[OBJ2_friendly_name])
+    MAIN_CAM_ROT = [math.radians(90), 0, 0]
+    setup_scene(CAM_POS, MAIN_CAM_ROT, bpy.data.objects[OBJ1_friendly_name], bpy.data.objects[OBJ2_friendly_name], BVH1_NAME, BVH2_NAME)
     
     # for sanity, audio is handled using FFMPEG on the server and the input_audio argument should be ignored
+    try:
+        ARG_AUDIO_FILE_NAME
+    except:
+        ARG_AUDIO_FILE_NAME = ''
+        
     if ARG_AUDIO_FILE_NAME and not IS_SERVER:
         load_audio(str(ARG_AUDIO_FILE_NAME))
     
@@ -278,8 +338,8 @@ def main():
     else:
         total_frames = total_frames1
         print('Frames are equal!')
-    render_video(str(ARG_OUTPUT_DIR), ARG_IMAGE, ARG_VIDEO, BVH1_NAME, ARG_START_FRAME, min(ARG_DURATION_IN_FRAMES, total_frames), ARG_RESOLUTION_X, ARG_RESOLUTION_Y)
-
+    render_video(str(ARG_OUTPUT_DIR), ARG_IMAGE, ARG_VIDEO, BVH1_NAME, BVH2_NAME, OBJ1_friendly_name, OBJ2_friendly_name, ARG_START_FRAME, min(ARG_DURATION_IN_FRAMES, total_frames), ARG_RESOLUTION_X, ARG_RESOLUTION_Y)
+    
     end = time.time()
     all_time = end - start
     print("output_file", str(list(ARG_OUTPUT_DIR.glob("*"))[0]), flush=True)
