@@ -97,8 +97,9 @@ def retarget(twh_namespace, twh_frozen_namespace, reference_bone_name, character
                 joint_obj = FBFindModelByLabelName(joint_name)
                 if joint_obj:
                     mapping_slot.append(joint_obj)
-                
+
         characterized = character.SetCharacterizeOn(True)
+        FBSystem().Scene.Evaluate()
         if not characterized:
             print(character.GetCharacterizeError())
             raise RuntimeError()
@@ -185,6 +186,11 @@ def plot_animation(twh_frozen_namespace):
     plotOptions.PlotPeriod = FBTime(0, 0, 0, 1)
     FBApplication().CurrentCharacter.PlotAnimation(FBCharacterPlotWhere.kFBCharacterPlotOnSkeleton, plotOptions)
 
+def fix_height(namespace):
+    hipbone = FBFindModelByLabelName(namespace + ':b_root').Translation.GetAnimationNode().Nodes[1].FCurve
+    default_height = 91.5 # only for TWH skeletons
+    hipbone.KeyAdd(FBTime(0,0,0,0), default_height) # assumes hip translation not animated
+
 def export_BVH(output_path, twh_frozen_namespace):
     # center the root so translation is baked to 0,0,0 in BVH spec (does not alter the animation data)
     FBPlayerControl().GotoStart()
@@ -234,11 +240,12 @@ t_pose_TWH(TWH_NAMESPACE, GENEA_NAMESPACE, TWH_FROZEN_NAMESPACE, REFERENCE_BONE_
 FBDeleteObjectsByName("", GENEA_NAMESPACE)
 
 # Retargeting
-FBSystem().CurrentTake = work_take
 retarget(TWH_NAMESPACE, TWH_FROZEN_NAMESPACE, REFERENCE_BONE_NAME, FILE_CHARACTERIZATION)
 
 # Plot the animation
+FBSystem().CurrentTake = work_take
 plot_animation(TWH_FROZEN_NAMESPACE)
+fix_height(TWH_FROZEN_NAMESPACE)
 
 # Export
 export_BVH(FILE_BVH_EXPORTED, TWH_FROZEN_NAMESPACE)
