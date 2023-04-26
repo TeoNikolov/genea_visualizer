@@ -8,6 +8,8 @@ import time
 import argparse
 import tempfile
 from pathlib import Path
+import wave
+import numpy as np
 
 # cleans up the scene and memory
 def clear_scene():
@@ -38,24 +40,23 @@ def setup_scene(cam_pos, cam_rot, actor1, actor2, arm1, arm2, plane_size=5):
     name = 'Main'
     add_camera(cam_pos, cam_rot, name)
     
-    # 2 new camers needed (1 behind each actor)
-    # readjust camera that views both actors
-    
     # Camera actor 1
     actor1c = actor1.children[0]
     actor1c.name = 'actor1_loc'
     arm1 = bpy.data.objects[arm1]
-    cam_pos = [0, 0.75, 1.5]
-    cam_rot = [math.radians(70), 0, math.radians(180)]
-    add_camera(cam_pos, cam_rot, actor1.name)
     
     # Camera actor 2
     actor2c = actor2.children[0]
     actor2c.name = 'actor2_loc'
     arm2 = bpy.data.objects[arm2]
+    
+    cam_pos = [0, 0.75, 1.5]
+    cam_rot = [math.radians(70), 0, math.radians(180)]
+    add_camera(cam_pos, cam_rot, actor2.name)
+    
     cam_pos = [0, -0.75, 1.5]
     cam_rot = [math.radians(70), 0, 0]
-    add_camera(cam_pos, cam_rot, actor2.name)
+    add_camera(cam_pos, cam_rot, actor1.name)
     
     add_plane(plane_size)
 
@@ -77,17 +78,17 @@ def add_plane(prov_size):
     mat.diffuse_color = (0.115, 0.25, 0.3, 1)
     plane_obj.data.materials.append(mat) #add the material to the object
     
-def add_cylinder():
-    bpy.ops.mesh.primitive_cylinder_add()
-    plane_obj = bpy.data.objects['Cylinder']
-    plane_obj.name = 'Floor'
-    plane_obj.scale[0] = 5
-    plane_obj.scale[1] = 5
-    plane_obj.scale[2] = 0.01
+def add_speechbubble(y):
+    bpy.ops.mesh.primitive_uv_sphere_add()
+    bub_obj = bpy.data.objects['Sphere']
+    bub_obj.name = 'SpeechBubble'
+    bub_obj.location[0] = 0
+    bub_obj.location[1] = y
+    bub_obj.location[2] = 1.8
     mat = bpy.data.materials['FloorColor'] #set new material to variable
     mat.diffuse_color = (0.115, 0.25, 0.3, 1)
-    plane_obj.data.materials.append(mat) #add the material to the object
-    
+    bub_obj.data.materials.append(mat) #add the material to the object
+    return bub_obj
     
 def add_camera(cam_pos, cam_rot, name):
     bpy.ops.object.camera_add(enter_editmode=False, location=cam_pos, rotation=cam_rot)
@@ -103,13 +104,8 @@ def setup_characters(actor1, actor2):
     arm1 = bpy.context.scene.objects[actor1]
     arm2 = bpy.context.scene.objects[actor2]
     arm1.location = [0, 0.75, 0]
-#    arm1.rotation_euler[2] = math.radians(-90)
     arm2.location = [0, 0.75, 0]
-#    arm2.rotation_euler[2] = math.radians(90)
-    
-#def setup_characters_faced(actor1, actor2):
-#    arm1 = bpy.context.scene.objects[actor1]
-#    arm1.location = [0, 0.75, 0]
+
     
 def get_camera(name):
     cam = bpy.data.objects[name]
@@ -220,7 +216,11 @@ def render_video(output_dir, picture, video, bvh1_fname, bvh2_fname, actor1, act
         bpy.data.objects[actor2].children[1].hide_render = True
         bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_.png'.format(bvh2_fname))
         bpy.ops.render.render(write_still=True)
-        
+    
+    BVH1_filepath = os.path.join(output_dir, '{}.mp4'.format(bvh1_fname))
+    BVH2_filepath = os.path.join(output_dir, '{}.mp4'.format(bvh2_fname))
+    Main_filepath = os.path.join(output_dir, 'Main_{}.mp4'.format(bvh1_fname))
+    
     if video:
         print(f"total_frames {render_frame_length}", flush=True)
         bpy.context.scene.render.image_settings.file_format='FFMPEG'
@@ -230,25 +230,22 @@ def render_video(output_dir, picture, video, bvh1_fname, bvh2_fname, actor1, act
         bpy.context.scene.render.ffmpeg.constant_rate_factor='HIGH'
         bpy.context.scene.render.ffmpeg.audio_codec='MP3'
         bpy.context.scene.render.ffmpeg.gopsize = 30
+        get_camera(actor2 + '_cam')
+        bpy.data.objects[actor1].children[1].hide_render = True
+        bpy.data.objects[actor2].children[1].hide_render = False
+        bpy.context.scene.render.filepath = BVH1_filepath
+        bpy.ops.render.render(animation=True, write_still=True)
+        get_camera(actor1 + '_cam')
+        bpy.data.objects[actor1].children[1].hide_render = False
+        bpy.data.objects[actor2].children[1].hide_render = True
+        bpy.context.scene.render.filepath = BVH2_filepath
+        bpy.ops.render.render(animation=True, write_still=True)
         get_camera('Main_cam')
         bpy.data.objects[actor1].children[1].hide_render = False
         bpy.data.objects[actor2].children[1].hide_render = False
-        Main_filepath = os.path.join(output_dir, 'Main_{}_'.format(bvh1_fname))
         bpy.context.scene.render.filepath = Main_filepath
         bpy.ops.render.render(animation=True, write_still=True)
-        get_camera(actor1 + '_cam')
-        bpy.data.objects[actor1].children[1].hide_render = True
-        bpy.data.objects[actor2].children[1].hide_render = False
-        BVH1_filepath = os.path.join(output_dir, '{}_'.format(bvh1_fname))
-        bpy.context.scene.render.filepath = BVH1_filepath
-        bpy.ops.render.render(animation=True, write_still=True)
-        get_camera(actor2 + '_cam')
-        bpy.data.objects[actor1].children[1].hide_render = False
-        bpy.data.objects[actor2].children[1].hide_render = True
-        BVH2_filepath = os.path.join(output_dir, '{}_'.format(bvh2_fname))
-        bpy.context.scene.render.filepath = BVH2_filepath
-        bpy.ops.render.render(animation=True, write_still=True)
-        return Main_filepath, BVH1_filepath, BVH2_filepath
+    return Main_filepath, BVH1_filepath, BVH2_filepath
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Some description.", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -269,6 +266,50 @@ def parse_args():
     argv = argv[argv.index("--") + 1 :]
     return vars(parser.parse_args(args=argv))
 
+def read_audio_strided(audio, stride, start, stop):
+    rate = audio.getframerate()
+    if start < 0: start = 0 # seconds
+    if stop  < 0: stop  = audio.getnframes() / rate # seconds
+    stop     = math.floor(stop * rate)     # samples
+    start    = math.floor(start * rate)    # samples
+    stride   = math.floor(stride * rate)   # samples
+    if start > audio.getnframes(): start = audio.getnframes() - 1
+    if stop  > audio.getnframes(): stop  = audio.getnframes()
+    duration = stop - start # samples
+
+    data = []
+    sample_count = math.ceil(duration / stride) # samples
+    positions = [start + stride * i for i in range(sample_count)]
+    for p in positions:
+        if p >= audio.getnframes():
+            break
+        audio.setpos(p)
+        sample = np.frombuffer(audio.readframes(1), dtype=np.int16)[0]
+        data.append(sample)
+    return data
+
+def get_volume(audio, time):
+    volume = -1
+    time_range = 0.01 # 220 samples (110 before, 110 after)
+    stride = 0.001 # 22 samples
+    samples = read_audio_strided(audio, stride, time - time_range, time + time_range)
+    samples = [abs(x) for x in samples] # absolute
+    volume = max(samples)
+    return volume
+
+def get_volume_strided(audio, stride, start, stop):
+    if start < 0: start = 0
+    if stop  < 0: stop = audio.getnframes() / audio.getframerate()
+    times = []
+    v = start
+    i = 0
+    while v < stop:
+        v = start + stride * i
+        times.append(v)
+        i += 1
+    volumes = [get_volume(audio, t) for t in times]
+    return volumes
+
 def main():
     IS_SERVER = "GENEA_SERVER" in os.environ
     if IS_SERVER:
@@ -288,7 +329,7 @@ def main():
         ARG_IMAGE = False
         ARG_VIDEO = True
         ARG_START_FRAME = 0
-        ARG_DURATION_IN_FRAMES = 30
+        ARG_DURATION_IN_FRAMES = 3600
         ARG_ROTATE = 'default'
         ARG_RESOLUTION_X = 1280
         ARG_RESOLUTION_Y = 720
@@ -368,85 +409,100 @@ def main():
     
     if not os.path.exists(str(ARG_OUTPUT_DIR)):
         os.mkdir(str(ARG_OUTPUT_DIR))
+    
+    framerate = bpy.context.scene.render.fps
+    audio_proc1 = wave.open(os.path.abspath(ARG_AUDIO_FILE_NAME1), 'rb')
+    audio_samples1 = get_volume_strided(audio_proc1, 1 / framerate, -1, -1)
+    audio_samples1 = [abs(x) / 32768 for x in audio_samples1] # normalize scale between 0 and 1
+    audio_samples1 = [x / max(audio_samples1) for x in audio_samples1] # normalize data between 0 and 1
+    audio_samples1 = [max(0.0075, x * 0.08) for x in audio_samples1] # scale down and clamp to min
+    
+    audio_proc2 = wave.open(os.path.abspath(ARG_AUDIO_FILE_NAME2), 'rb')
+    audio_samples2 = get_volume_strided(audio_proc2, 1 / framerate, -1, -1)
+    audio_samples2 = [abs(x) / 32768 for x in audio_samples2] # normalize scale between 0 and 1
+    audio_samples2 = [x / max(audio_samples2) for x in audio_samples2] # normalize data between 0 and 1
+    audio_samples2 = [max(0.0075, x * 0.08) for x in audio_samples2] # scale down and clamp to min
+    
+    bubble1 = add_speechbubble(0.75)
+    bubble2 = add_speechbubble(-0.75)
+    
+    for i in range(ARG_DURATION_IN_FRAMES):
+        start_frame = i * framerate
+        end_frame = (i + 1) * framerate
+        if i < len(audio_samples1):
+            a1s = audio_samples1[i]
+            a2s = audio_samples2[i]
+        else:
+            a1s = audio_samples1[-1]
+            a2s = audio_samples2[-1]
         
+        bubble1.scale = (a1s, a1s, a1s)
+        bubble1.keyframe_insert(data_path='scale', frame=i)
+        
+        bubble2.scale = (a2s, a2s, a2s)
+        bubble2.keyframe_insert(data_path='scale', frame=i)
+      
     # 05/04/2023 fix main camera orientation, fix character rotation and personal cameras
-    if ARG_MODE == "full_body":     CAM_POS = [3.25, 0, 1.1]
+    if ARG_MODE == "full_body":     CAM_POS = [-3.25, 0, 1.1]
     elif ARG_MODE == "upper_body":  CAM_POS = [0, -2.45, 1.3]
-    MAIN_CAM_ROT = [math.radians(85), 0, math.radians(90)]
+    MAIN_CAM_ROT = [math.radians(85), 0, math.radians(-90)]
     setup_scene(CAM_POS, MAIN_CAM_ROT, bpy.data.objects[OBJ1_friendly_name], bpy.data.objects[OBJ2_friendly_name], BVH1_NAME, BVH2_NAME)
         
     total_frames1 = bpy.data.objects[BVH1_NAME].animation_data.action.frame_range.y
     total_frames2 = bpy.data.objects[BVH2_NAME].animation_data.action.frame_range.y
-    if total_frames1 != total_frames2:
-        frames = total_frames1 - total_frames2
-        print('Frame Difference' + str(frames))
-        total_frames = total_frames1
-    else:
-        total_frames = total_frames1
-        print('Frames are equal!')
-    main_fp, bvh1_fp, bvh2_fp = render_video(str(ARG_OUTPUT_DIR), ARG_IMAGE, ARG_VIDEO, BVH1_NAME, BVH2_NAME, OBJ1_friendly_name, OBJ2_friendly_name, ARG_START_FRAME, min(ARG_DURATION_IN_FRAMES, total_frames), ARG_RESOLUTION_X, ARG_RESOLUTION_Y)
-    
-    end = time.time()
-    all_time = end - start
-    print("output_file", str(list(ARG_OUTPUT_DIR.glob("*"))[0]), flush=True)
-    
-    if ARG_VIDEO == False:
-        raise KeyboardInterrupt
+    ARG_DURATION_IN_FRAMES = min([ARG_DURATION_IN_FRAMES, total_frames1, total_frames2])        
+    main_fp, bvh1_fp, bvh2_fp = render_video(str(ARG_OUTPUT_DIR), ARG_IMAGE, ARG_VIDEO, BVH1_NAME, BVH2_NAME, OBJ1_friendly_name, OBJ2_friendly_name, ARG_START_FRAME, ARG_DURATION_IN_FRAMES, ARG_RESOLUTION_X, ARG_RESOLUTION_Y)
     
     audio1.use_mono = True
     audio2.use_mono = True
     bpy.context.scene.sequence_editor.sequences_all['AudioClip1'].pan = -1
     bpy.context.scene.sequence_editor.sequences_all['AudioClip2'].pan = 1
     
-    combine_string = ''
-    if ARG_DURATION_IN_FRAMES >= 0 and ARG_DURATION_IN_FRAMES <= 9:
-        combine_string = '0000-000'
-    elif ARG_DURATION_IN_FRAMES >= 10 and ARG_DURATION_IN_FRAMES <= 99:
-        combine_string = '0000-00'    
-    elif ARG_DURATION_IN_FRAMES >= 100 and ARG_DURATION_IN_FRAMES <= 999:
-        combine_string = '0000-0'      
-    elif ARG_DURATION_IN_FRAMES >= 1000 and ARG_DURATION_IN_FRAMES <= 9999:
-        combine_string = '0000-'
-    
-    bvh1_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input1', filepath=bvh1_fp + combine_string + str(ARG_DURATION_IN_FRAMES) + '.mp4', channel=3, frame_start=0)
+    bvh1_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input1', filepath=bvh1_fp, channel=3, frame_start=0)
     bvh1_mp4.mute = True
     bvh1_mp4.use_proxy = False
     input1_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input1_effect', type='TRANSFORM', channel=4, frame_start=0, seq1=bvh1_mp4)
     input1_effect.use_uniform_scale = True
-    input1_effect.transform.offset_x = -325
+    input1_effect.transform.offset_x = 350
     input1_effect.transform.offset_y = 0
     input1_effect.blend_type = 'ALPHA_OVER'
     input1_effect.crop.max_x = 200
-    input1_effect.crop.min_x = 200
+    input1_effect.crop.min_x = 300
     
-    bvh2_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input2', filepath=bvh2_fp + combine_string + str(ARG_DURATION_IN_FRAMES) + '.mp4', channel=5, frame_start=0)
+    bvh2_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input2', filepath=bvh2_fp, channel=5, frame_start=0)
     bvh2_mp4.mute = True
     bvh2_mp4.use_proxy = False
     input2_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input2_effect', type='TRANSFORM', channel=6, frame_start=0, seq1=bvh2_mp4)
     input2_effect.use_uniform_scale = True
-    input2_effect.transform.offset_x = 325
+    input2_effect.transform.offset_x = -350
     input2_effect.transform.offset_y = 0
     input2_effect.blend_type = 'ALPHA_OVER'
-    input2_effect.crop.max_x = 200
+    input2_effect.crop.max_x = 310
     input2_effect.crop.min_x = 310
     
-    main_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input3', filepath=main_fp + combine_string + str(ARG_DURATION_IN_FRAMES) + '.mp4', channel=7, frame_start=0)
+    main_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input3', filepath=main_fp, channel=7, frame_start=0)
     main_mp4.mute = True
     main_mp4.use_proxy = False
     input3_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input3_effect', type='TRANSFORM', channel=8, frame_start=0, seq1=main_mp4)
     input3_effect.use_uniform_scale = True
-    input3_effect.scale_start_x = 0.25
+    input3_effect.scale_start_x = 0.4
     input3_effect.transform.offset_x = 0
-    input3_effect.transform.offset_y = -269
+    input3_effect.transform.offset_y = -310
     input3_effect.blend_type = 'ALPHA_OVER'
-    input3_effect.crop.max_y = 250
+    input3_effect.crop.max_y = 0
     input3_effect.crop.min_y = 0
-    input3_effect.crop.max_x = 500
-    input3_effect.crop.min_x = 500
+    input3_effect.crop.max_x = 450
+    input3_effect.crop.min_x = 450
     
-    seq_filepath = os.path.join(str(ARG_OUTPUT_DIR), 'Sequence')
-    bpy.context.scene.render.filepath = seq_filepath
-    bpy.ops.render.render(animation=True)
+    if ARG_VIDEO == True:
+        seq_filepath = os.path.join(str(ARG_OUTPUT_DIR), 'Sequence.mp4')
+        bpy.context.scene.render.filepath = seq_filepath
+        bpy.ops.render.render(animation=True)
+    
+    end = time.time()
+    all_time = end - start
+    print("output_file", str(list(ARG_OUTPUT_DIR.glob("*"))[0]), flush=True)
+    print(all_time)
     
 #Code line
 main()
