@@ -25,12 +25,12 @@ This repository contains code that can be used to visualize BVH files (with opti
 
 ## Blender Script
 
-The Blender script used by the (future) server can also be used directly inside Blender, either through a command line interface or Blender's user intarface. Using the script directly is useful if you have Blender installed on your system, and you want to play around with the visualizer.
+The Blender script can be used directly inside Blender, either through a command line interface or Blender's user intarface. Using the script directly is useful if you have Blender installed on your system, and you want to play around with the visualizer.
 
 ### Using Blender UI
 
 1. Make sure you have `Blender 2.93.9` installed (other versions may work, but this is *not guaranteed*).
-  - You can install Blender from Steam. Set version to 2.93.x in the properties.
+   - You can install Blender from Steam. Set version to 2.93.x in the properties.
 2. Start `Blender` and navigate to the `Scripting` panel above the 3D viewport.
 3. In the panel on the right of the 3D viewport, press `Open` to navigate to the `blender_render_2023.py` script. This script is found inside the `celery-queue` folder.
 4. Tweak the settings in `main()` below the comment block that reads "SET ARGUMENTS MANUALLY...".
