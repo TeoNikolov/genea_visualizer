@@ -51,11 +51,11 @@ def setup_scene(cam_pos, cam_rot, actor1, actor2, arm1, arm2, plane_size=5):
     arm2 = bpy.data.objects[arm2]
     
     cam_pos = [0, 0.75, 1.5]
-    cam_rot = [math.radians(70), 0, math.radians(180)]
+    cam_rot = [math.radians(80), 0, math.radians(180)]
     add_camera(cam_pos, cam_rot, actor2.name)
     
     cam_pos = [0, -0.75, 1.5]
-    cam_rot = [math.radians(70), 0, 0]
+    cam_rot = [math.radians(80), 0, 0]
     add_camera(cam_pos, cam_rot, actor1.name)
     
     add_plane(plane_size)
@@ -84,7 +84,7 @@ def add_speechbubble(y):
     bub_obj.name = 'SpeechBubble'
     bub_obj.location[0] = 0
     bub_obj.location[1] = y
-    bub_obj.location[2] = 1.8
+    bub_obj.location[2] = 1.85
     mat = bpy.data.materials['FloorColor'] #set new material to variable
     mat.diffuse_color = (0.115, 0.25, 0.3, 1)
     bub_obj.data.materials.append(mat) #add the material to the object
@@ -94,9 +94,9 @@ def add_camera(cam_pos, cam_rot, name):
     bpy.ops.object.camera_add(enter_editmode=False, location=cam_pos, rotation=cam_rot)
     cam = bpy.data.objects['Camera']
     cam.scale = [5, 25, 5]
-    cam.data.lens = 15
+    cam.data.lens = 17.5
     if name == 'Main':
-        cam.data.lens = 30
+        cam.data.lens = 35
     cam.name = name + '_cam'
     bpy.context.scene.camera = cam # add cam so it's rendered
     
@@ -310,6 +310,18 @@ def get_volume_strided(audio, stride, start, stop):
     volumes = [get_volume(audio, t) for t in times]
     return volumes
 
+def smooth_kernel(data, offset=5):
+    out_data = []
+    for i in range(len(data)):
+        start = max(0, i - offset)
+        stop = min(len(data), i + offset + 1)
+        out_data.append(data[i])
+        for j in range(start, stop):
+            if data[j] > 0:
+                out_data[-1] = 1
+                break
+    return out_data
+
 def main():
     IS_SERVER = "GENEA_SERVER" in os.environ
     if IS_SERVER:
@@ -329,7 +341,7 @@ def main():
         ARG_IMAGE = False
         ARG_VIDEO = True
         ARG_START_FRAME = 0
-        ARG_DURATION_IN_FRAMES = 3600
+        ARG_DURATION_IN_FRAMES = 600
         ARG_ROTATE = 'default'
         ARG_RESOLUTION_X = 1280
         ARG_RESOLUTION_Y = 720
@@ -415,13 +427,17 @@ def main():
     audio_samples1 = get_volume_strided(audio_proc1, 1 / framerate, -1, -1)
     audio_samples1 = [abs(x) / 32768 for x in audio_samples1] # normalize scale between 0 and 1
     audio_samples1 = [x / max(audio_samples1) for x in audio_samples1] # normalize data between 0 and 1
-    audio_samples1 = [max(0.0075, x * 0.08) for x in audio_samples1] # scale down and clamp to min
+    audio_samples1 = [0 if x < 0.2 else 1 for x in audio_samples1]
+    audio_samples1 = smooth_kernel(audio_samples1, 10)
+    audio_samples1 = [max(0.0075, x * 0.05) for x in audio_samples1] # scale down and clamp to min
     
     audio_proc2 = wave.open(os.path.abspath(ARG_AUDIO_FILE_NAME2), 'rb')
     audio_samples2 = get_volume_strided(audio_proc2, 1 / framerate, -1, -1)
     audio_samples2 = [abs(x) / 32768 for x in audio_samples2] # normalize scale between 0 and 1
     audio_samples2 = [x / max(audio_samples2) for x in audio_samples2] # normalize data between 0 and 1
-    audio_samples2 = [max(0.0075, x * 0.08) for x in audio_samples2] # scale down and clamp to min
+    audio_samples2 = [0 if x < 0.2 else 1 for x in audio_samples2]
+    audio_samples2 = smooth_kernel(audio_samples2, 10)
+    audio_samples2 = [max(0.0075, x * 0.05) for x in audio_samples2] # scale down and clamp to min
     
     bubble1 = add_speechbubble(0.75)
     bubble2 = add_speechbubble(-0.75)
@@ -443,9 +459,9 @@ def main():
         bubble2.keyframe_insert(data_path='scale', frame=i)
       
     # 05/04/2023 fix main camera orientation, fix character rotation and personal cameras
-    if ARG_MODE == "full_body":     CAM_POS = [-3.25, 0, 1.1]
+    if ARG_MODE == "full_body":     CAM_POS = [3.25, 0, 1.8]
     elif ARG_MODE == "upper_body":  CAM_POS = [0, -2.45, 1.3]
-    MAIN_CAM_ROT = [math.radians(85), 0, math.radians(-90)]
+    MAIN_CAM_ROT = [math.radians(80), 0, math.radians(90)]
     setup_scene(CAM_POS, MAIN_CAM_ROT, bpy.data.objects[OBJ1_friendly_name], bpy.data.objects[OBJ2_friendly_name], BVH1_NAME, BVH2_NAME)
         
     total_frames1 = bpy.data.objects[BVH1_NAME].animation_data.action.frame_range.y
@@ -455,18 +471,19 @@ def main():
     
     audio1.use_mono = True
     audio2.use_mono = True
-    bpy.context.scene.sequence_editor.sequences_all['AudioClip1'].pan = -1
-    bpy.context.scene.sequence_editor.sequences_all['AudioClip2'].pan = 1
+    bpy.context.scene.sequence_editor.sequences_all['AudioClip1'].pan = 1
+    bpy.context.scene.sequence_editor.sequences_all['AudioClip2'].pan = -1
     
     bvh1_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input1', filepath=bvh1_fp, channel=3, frame_start=0)
     bvh1_mp4.mute = True
     bvh1_mp4.use_proxy = False
     input1_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input1_effect', type='TRANSFORM', channel=4, frame_start=0, seq1=bvh1_mp4)
     input1_effect.use_uniform_scale = True
-    input1_effect.transform.offset_x = 350
+    input1_effect.transform.offset_x = -350
     input1_effect.transform.offset_y = 0
+    input1_effect.transform.scale_y = 1.000001
     input1_effect.blend_type = 'ALPHA_OVER'
-    input1_effect.crop.max_x = 200
+    input1_effect.crop.max_x = 300
     input1_effect.crop.min_x = 300
     
     bvh2_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input2', filepath=bvh2_fp, channel=5, frame_start=0)
@@ -474,25 +491,39 @@ def main():
     bvh2_mp4.use_proxy = False
     input2_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input2_effect', type='TRANSFORM', channel=6, frame_start=0, seq1=bvh2_mp4)
     input2_effect.use_uniform_scale = True
-    input2_effect.transform.offset_x = -350
+    input2_effect.transform.offset_x = 350
     input2_effect.transform.offset_y = 0
+    input2_effect.transform.scale_y = 1.000001
     input2_effect.blend_type = 'ALPHA_OVER'
-    input2_effect.crop.max_x = 310
-    input2_effect.crop.min_x = 310
+    input2_effect.crop.max_x = 300
+    input2_effect.crop.min_x = 300
     
     main_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input3', filepath=main_fp, channel=7, frame_start=0)
     main_mp4.mute = True
     main_mp4.use_proxy = False
     input3_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input3_effect', type='TRANSFORM', channel=8, frame_start=0, seq1=main_mp4)
     input3_effect.use_uniform_scale = True
-    input3_effect.scale_start_x = 0.4
+    input3_effect.scale_start_x = 0.225
     input3_effect.transform.offset_x = 0
-    input3_effect.transform.offset_y = -310
+    input3_effect.transform.offset_y = -279
     input3_effect.blend_type = 'ALPHA_OVER'
+#    input3_effect.color_multiply = 1.05
     input3_effect.crop.max_y = 0
     input3_effect.crop.min_y = 0
     input3_effect.crop.max_x = 450
     input3_effect.crop.min_x = 450
+    
+    text_actor1 = bpy.context.scene.sequence_editor.sequences.new_effect(name='Main_Agent',type='TEXT', channel=9, frame_start=0, frame_end=ARG_DURATION_IN_FRAMES + 1)
+    text_actor1.font_size = 30
+    text_actor1.location[0] = 0.92
+    text_actor1.location[1] = 0.04
+    text_actor1.text = "Main Agent"
+    
+    text_actor2 = bpy.context.scene.sequence_editor.sequences.new_effect(name='Interlocutor',type='TEXT', channel=10, frame_start=0, frame_end=ARG_DURATION_IN_FRAMES + 1)
+    text_actor2.font_size = 30
+    text_actor2.location[0] = 0.10
+    text_actor2.location[1] = 0.04
+    text_actor2.text = "Interlocutor"
     
     if ARG_VIDEO == True:
         seq_filepath = os.path.join(str(ARG_OUTPUT_DIR), 'Sequence.mp4')
@@ -503,6 +534,6 @@ def main():
     all_time = end - start
     print("output_file", str(list(ARG_OUTPUT_DIR.glob("*"))[0]), flush=True)
     print(all_time)
-    
+
 #Code line
 main()
