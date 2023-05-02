@@ -1,19 +1,21 @@
+**Warning:** In the GENEA Challenge 2022 we provided a Docker-based solution which was also hosted on a public server. Currently, GENEA Challenge 2023 does not support a server-based solution, and you will need to download Blender 2.93.9 . You will be notified if/when a self-hosted or public server solution is available to you.
+
 **Disclaimer:** The `master` branch is now dedicated to GENEA Challenge **2023**. If you wish to use the files from GENEA Challenge 2022, please switch to the `archive_2022` branch: https://github.com/TeoNikolov/genea_visualizer/tree/archive_2022
 
 # GENEA 2023 BVH Visualizer
 <p align="center">
   <img src="demo.gif" alt="example from visualization server">
   <br>
-  <i>Example output from the visualization server</i>
+  <i>Example output from the visualization server. The indicators above the speakers hint to the viewer that the speaker is engaged in "active speech".</i>
 </p>
 
-- [GENEA 2022 BVH Visualizer](#genea-2022-bvh-visualizer)
+- [GENEA 2023 BVH Visualizer](#genea-2023-bvh-visualizer)
   * [Introduction](#introduction)
   * [Blender Script](#blender-script)
     + [Using Blender UI](#using-blender-ui)
     + [Using command line](#using-command-line)
   * [Miscellaneous scripts](#miscellaneous-scripts)
-  * [Replicating the GENEA Challenge 2022 visualizations](#replicating-the-genea-challenge-2022-visualizations)
+  * [Replicating the GENEA Challenge 2023 visualizations](#replicating-the-genea-challenge-2023-visualizations)
 - [Citation](#citation)
 - [Contact](#contact)
 
@@ -21,13 +23,13 @@
 
 ## Introduction
 
-This repository contains code that can be used to visualize BVH files (with optional audio) using Docker, Blender, and FFMPEG. The code was developed for the [GENEA Challenge 2022](https://genea-workshop.github.io/2022/), and enables reproducing the visualizations used for the challenge stimuli on most platforms. The system integrates Docker and Blender to provide a free and easy-to-use solution that requires as little manual setup as possible. Currently, we provide one interfaces that you can use to access the visualizations:
+This repository contains code that can be used to visualize BVH files (with optional audio) using Blender for dyadic interactions. The code was developed for the [GENEA Challenge 2023](https://genea-workshop.github.io/2023/challenge/), and enables reproducing the visualizations used for the challenge stimuli on most platforms. Currently, we provide only one interface for rendering visualizations:
 
 - Stand-alone, for using the supplied Blender script with an existing Blender installation
 
 ## Blender Script
 
-The Blender script can be used directly inside Blender, either through a command line interface or Blender's user intarface. Using the script directly is useful if you have Blender installed on your system, and you want to play around with the visualizer.
+The Blender script can be used directly inside Blender, either through a command line interface or Blender's user interface. Using the script directly is useful if you have Blender installed on your system, and you want to play around with the visualizer.
 
 ### Using Blender UI
 
@@ -53,25 +55,16 @@ Tip: Tweak `--duration <frame count>`, to smaller values to decrease render time
 ## Miscellaneous scripts
 During the development of the visualizer, a variety of scripts were used for standardizing the data and processing video stimuli for subjective evaluation. The scripts are included in the `scripts` folder in case anyone needs to use them directly, or as reference, for solving similar tasks. Some scripts were not written in a user-friendly manner, and lack comments and argument parsing. Therefore, using some scripts may be cumbersome, so be ready for some manual fiddling (e.g. replacing hard-coded paths). Writing a short readme inside the scripts folder is on the backlog, but there is no telling when this will happen at the moment.
 
-## Replicating the GENEA Challenge 2022 visualizations
-The parameters in the enclosed `.env` file correspond to the those used for rendering the final evaluation stimuli of the GENEA Challenge 2022, for ease of replication. As long as you clone this repo, build it using Docker, and input the BVH files used for the final visualization, you should be able to reproduce the results.
-
+## Replicating the GENEA Challenge 2023 visualizations
+Currently, the default settings written inside the Blender script indicate the settings that will be used to render the final challenge stimuli of GENEA Challenge 2023. Please check this repository occasionally for any changes to these settings.
 
 # Citation
-If you use this material, please cite our latest paper on the GENEA Challenge 2022. At the time of writing (2022-07-29) this is our ACM ICMI 2022 paper. You can use the following BibTeX code to cite that work:
-
-```
-@inproceedings{yoon2022genea,
-  author={Yoon, Youngwoo and Wolfert, Pieter and Kucherenko, Taras and Viegas, Carla and Nikolov, Teodor and Tsakov, Mihail and Henter, Gustav Eje},
-  title={{T}he {GENEA} {C}hallenge 2022: {A} large evaluation of data-driven co-speech gesture generation},
-  booktitle={Proceedings of the ACM International Conference on Multimodal Interaction},
-  publisher={ACM},
-  series={ICMI '22},
-  year={2022}
-}
-```
+*TBD*
 
 # Contact
+To find more GENEA Challenge 2023 material on the web, please see:
+* https://genea-workshop.github.io/2023/challenge/
+
 To find more GENEA Challenge 2022 material on the web, please see:
 * https://youngwoo-yoon.github.io/GENEAchallenge2022/
 * https://genea-workshop.github.io/2022/challenge/
