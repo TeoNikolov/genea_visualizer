@@ -63,11 +63,13 @@ Currently, the default settings written inside the Blender script indicate the s
 
 # Contact
 To find more GENEA Challenge 2023 material on the web, please see:
-* https://genea-workshop.github.io/2023/challenge/
+* Challenge : https://genea-workshop.github.io/2023/challenge/
+* Workshop : https://genea-workshop.github.io/2023/workshop/
 
 To find more GENEA Challenge 2022 material on the web, please see:
-* https://youngwoo-yoon.github.io/GENEAchallenge2022/
-* https://genea-workshop.github.io/2022/challenge/
+* Summary page : https://youngwoo-yoon.github.io/GENEAchallenge2022/
+* Challenge : https://genea-workshop.github.io/2022/challenge/
+* Workshop : https://genea-workshop.github.io/2022/workshop/
 
 If you have any questions or comments, please contact:
 * Teodor Nikolov <tnikolov@hotmail.com>
