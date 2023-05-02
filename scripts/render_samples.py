@@ -45,9 +45,9 @@ tmpl_scene_settings = {
 }
 
 tmpl_io_settings = {
-    "input_dir"  : Path('D:/Files/30-39 Work/GENEA_2023/2022/retargeted/'),
+    "input_dir"  : Path('D:/Files/30-39 Work/GENEA_2023/genea_visualizer/scripts/data/retargeted/single/'),
     # where rendered videos are saved, cannot have more than 1 non-existing directory
-    "output_dir" : Path('D:/Files/30-39 Work/GENEA_2023/2022/retargeted-videos/'),
+    "output_dir" : Path('D:/Files/30-39 Work/GENEA_2023/genea_visualizer/scripts/data/retargeted/rendered/'),
     "audio"      : None, # generated automatically
     "bvh_1"      : None, # generated automatically
     "bvh_1_name" : None, # generated automatically
@@ -65,10 +65,10 @@ tmpl_retarget_settings = {
 }
 
 tmpl_render_settings = {
-    "process_all_takes"    : False,
+    "process_all_takes"    : True,
     "render"               : True,
     "render_audio"         : AUDIO_MODE.AUTOMATIC,
-    "mode"                 : RENDER_MODE.XRAY,
+    "mode"                 : RENDER_MODE.MODELS,
     # How long the output video should be, in frames.
     # Set to '0' to render until the end of the take.
     # Consider the FPS of the source (original TWH is 90fps, processed is 30fps).

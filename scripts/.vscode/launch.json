@@ -1,0 +1,76 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Render Sample",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/render_samples.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+
+        {
+            "name": "Tpose",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/data_standardization_pipeline.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["${workspaceFolder}/data/workdir/", "30fps.bvh", "-r", "--tpose", "-b"]
+        },
+
+        {
+            "name": "Freeze",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/data_standardization_pipeline.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["${workspaceFolder}/data/workdir/", "30fps.bvh", "-r", "--freeze", "-b"]
+        },
+
+        {
+            "name": "Retarget",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/data_standardization_pipeline.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["${workspaceFolder}/data/workdir/", "30fps.bvh", "-r", "--retarget", "-b"]
+        },
+
+        {
+            "name": "All (no normalize)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/data_standardization_pipeline.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["${workspaceFolder}/data/workdir/", "30fps.bvh", "-r", "--tpose", "--freeze", "--retarget", "-b"]
+        },
+
+        {
+            "name": "Normalize (Single)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/data_standardization_pipeline.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["${workspaceFolder}/data/workdir/", "30fps.bvh", "-r", "--normalize-root", "-b"]
+        },
+
+        {
+            "name": "Normalize (Dyadic)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/data_standardization_pipeline.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["${workspaceFolder}/data/workdir/", "30fps.bvh", "-r", "--normalize-root", "-d", "-b"]
+        },
+    ]
+}
