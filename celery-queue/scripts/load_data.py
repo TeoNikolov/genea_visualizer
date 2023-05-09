@@ -2,7 +2,10 @@ import bpy
 from pathlib import Path as myPath
 import importlib
 
-script_dir = myPath(bpy.context.space_data.text.filepath).parents[0]
+if bpy.ops.text.run_script.poll():
+    script_dir = myPath(bpy.context.space_data.text.filepath).parents[0]
+else:
+    script_dir = myPath(os.path.realpath(__file__)).parents[0]
 
 import edit_character
 importlib.reload(edit_character)

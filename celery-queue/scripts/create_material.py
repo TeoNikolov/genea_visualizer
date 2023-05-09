@@ -1,7 +1,6 @@
 import bpy
 import os
 
-
 def add_materials(work_dir, name):
     mat = bpy.data.materials.new('gray')
     mat.use_nodes = True
