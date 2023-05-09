@@ -7,9 +7,26 @@ from mathutils import Vector
 import time
 import argparse
 import tempfile
-from pathlib import Path
+from pathlib import Path as myPath
 import wave
 import numpy as np
+import importlib
+
+script_dir = myPath(bpy.context.space_data.text.filepath).parents[0]
+sys.path.append(os.path.join(script_dir, "scripts"))
+
+import load_data
+importlib.reload(load_data)
+import create_scene
+importlib.reload(create_scene)
+import create_camera
+importlib.reload(create_camera)
+import create_material
+importlib.reload(create_material)
+import edit_character
+importlib.reload(edit_character)
+import edit_audio
+importlib.reload(edit_audio)
 
 # cleans up the scene and memory
 def clear_scene():
@@ -34,158 +51,8 @@ def clear_scene():
     bpy.ops.sequencer.select_all(action='SELECT')
     bpy.ops.sequencer.delete()
     
-def setup_scene(cam_pos, cam_rot, actor1, actor2, arm1, arm2, plane_size=5):
-    
-    # Camera Main
-    name = 'Main'
-    add_camera(cam_pos, cam_rot, name)
-    
-    # Camera actor 1
-    actor1c = actor1.children[0]
-    actor1c.name = 'actor1_loc'
-    arm1 = bpy.data.objects[arm1]
-    
-    # Camera actor 2
-    actor2c = actor2.children[0]
-    actor2c.name = 'actor2_loc'
-    arm2 = bpy.data.objects[arm2]
-    
-    cam_pos = [0, 0.75, 1.5]
-    cam_rot = [math.radians(80), 0, math.radians(180)]
-    add_camera(cam_pos, cam_rot, actor2.name)
-    
-    cam_pos = [0, -0.75, 1.5]
-    cam_rot = [math.radians(80), 0, 0]
-    add_camera(cam_pos, cam_rot, actor1.name)
-    
-    add_plane(plane_size)
-
-    # Sky Sphere
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=256, ring_count=256, radius=75)
-    sky_obj = bpy.data.objects['Sphere']
-    sky_obj.name = 'Sky'
-    sky_mat = bpy.data.materials.new(name="SkyColor")
-    sky_mat.diffuse_color = (0.115, 0.25, 0.3, 1)
-    sky_obj.data.materials.append(sky_mat) #add the material to the object
-
-def add_plane(prov_size):
-    bpy.ops.mesh.primitive_plane_add(size=prov_size)
-    plane_obj = bpy.data.objects['Plane']
-    plane_obj.name = 'Floor'
-    plane_obj.scale[0] = 2.3
-    plane_obj.scale[1] = 2.175
-    mat = bpy.data.materials['FloorColor'] #set new material to variable
-    mat.diffuse_color = (0.115, 0.25, 0.3, 1)
-    plane_obj.data.materials.append(mat) #add the material to the object
-    
-def add_speechbubble(y):
-    bpy.ops.mesh.primitive_uv_sphere_add()
-    bub_obj = bpy.data.objects['Sphere']
-    bub_obj.name = 'SpeechBubble'
-    bub_obj.location[0] = 0
-    bub_obj.location[1] = y
-    bub_obj.location[2] = 1.85
-    mat = bpy.data.materials['FloorColor'] #set new material to variable
-    mat.diffuse_color = (0.115, 0.25, 0.3, 1)
-    bub_obj.data.materials.append(mat) #add the material to the object
-    return bub_obj
-    
-def add_camera(cam_pos, cam_rot, name):
-    bpy.ops.object.camera_add(enter_editmode=False, location=cam_pos, rotation=cam_rot)
-    cam = bpy.data.objects['Camera']
-    cam.scale = [5, 25, 5]
-    cam.data.lens = 17.5
-    if name == 'Main':
-        cam.data.lens = 35
-    cam.name = name + '_cam'
-    bpy.context.scene.camera = cam # add cam so it's rendered
-    
-def setup_characters(actor1, actor2):
-    arm1 = bpy.context.scene.objects[actor1]
-    arm2 = bpy.context.scene.objects[actor2]
-    arm1.location = [0, 0.75, 0]
-    arm2.location = [0, 0.75, 0]
-
-    
-def get_camera(name):
-    cam = bpy.data.objects[name]
-    bpy.context.scene.camera = cam
-
-def remove_bone(armature, bone_name):
-    bpy.ops.object.mode_set(mode='EDIT')
-    for bone in armature.data.edit_bones: # deselect the other bones
-        if bone.name == bone_name:
-            armature.data.edit_bones.remove(bone)
-    bpy.ops.object.mode_set(mode='OBJECT')
-    
-def load_fbx(filepath, name):
-    bpy.ops.import_scene.fbx(filepath=filepath, ignore_leaf_bones=True, 
-    force_connect_children=True, automatic_bone_orientation=False)
-    remove_bone(bpy.data.objects['Armature'], 'b_r_foot_End')
-    bpy.data.objects['Armature'].name = name
-        
-def load_bvh(filepath):
-    bpy.ops.import_anim.bvh(filepath=filepath, use_fps_scale=False,
-    update_scene_fps=True, update_scene_duration=True, global_scale=0.01)
-
-def add_materials(work_dir, name):
-    mat = bpy.data.materials.new('gray')
-    mat.use_nodes = True
-    bsdf = mat.node_tree.nodes["Principled BSDF"]
-    texImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
-    texImage.image = bpy.data.images.load(os.path.join(work_dir, 'model', "LowP_03_Texture_ColAO_grey5.jpg"))
-    mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
-
-    obj = bpy.data.objects['LowP_01']
-    obj.modifiers['Armature'].use_deform_preserve_volume=True
-    # Assign it to object
-    if obj.data.materials:
-        obj.data.materials[0] = mat
-    else:
-        obj.data.materials.append(mat)
-    
-    # set new material to variable
-    mat = bpy.data.materials.new(name="FloorColor")
-    mat.diffuse_color = (0.15, 0.4, 0.25, 1)
-    
-def constraintBoneTargets(armature = 'Armature', rig = 'None', mode = 'full_body'):
-    armobj = bpy.data.objects[armature]
-    for ob in bpy.context.scene.objects: ob.select_set(False)
-    bpy.context.view_layer.objects.active = armobj
-    bpy.ops.object.mode_set(mode='POSE')
-    bpy.ops.pose.select_all(action='SELECT')
-    for bone in bpy.context.selected_pose_bones:
-        # Delete all other constraints
-        for c in bone.constraints:
-            bone.constraints.remove( c )
-        # Create body_world location to fix floating legs
-        if bone.name == 'body_world' and mode == 'full_body':
-            constraint = bone.constraints.new('COPY_LOCATION')
-            constraint.target = bpy.context.scene.objects[rig]
-            temp = bone.name.replace('BVH:','')
-            constraint.subtarget = temp
-        # Create all rotations
-        if bpy.context.scene.objects[armature].data.bones.get(bone.name) is not None:
-            constraint = bone.constraints.new('COPY_ROTATION')
-            constraint.target = bpy.context.scene.objects[rig]
-            temp = bone.name.replace('BVH:','')
-            constraint.subtarget = temp
-    if mode == 'upper_body':
-        bpy.context.object.pose.bones["b_root"].constraints["Copy Rotation"].mute = True
-        bpy.context.object.pose.bones["b_r_upleg"].constraints["Copy Rotation"].mute = True
-        bpy.context.object.pose.bones["b_r_leg"].constraints["Copy Rotation"].mute = True
-        bpy.context.object.pose.bones["b_l_upleg"].constraints["Copy Rotation"].mute = True
-        bpy.context.object.pose.bones["b_l_leg"].constraints["Copy Rotation"].mute = True
-    bpy.ops.object.mode_set(mode='OBJECT')
-    
-def load_audio(filepath, name):
+def create_sequencer():
     bpy.context.scene.sequence_editor_create()
-    bpy.context.scene.sequence_editor.sequences.new_sound(
-        name='AudioClip' + str(name),
-        filepath=filepath,
-        channel=name,
-        frame_start=0
-    )
     
 def render_video(output_dir, picture, video, bvh1_fname, bvh2_fname, actor1, actor2, render_frame_start, render_frame_length, res_x, res_y):
     bpy.context.scene.render.engine = 'BLENDER_WORKBENCH'
@@ -201,17 +68,17 @@ def render_video(output_dir, picture, video, bvh1_fname, bvh2_fname, actor1, act
     
     if picture:
         bpy.context.scene.render.image_settings.file_format='PNG'
-        get_camera('Main_cam')
+        create_camera.get_camera('Main_cam')
         bpy.data.objects[actor1].children[1].hide_render = False
         bpy.data.objects[actor2].children[1].hide_render = False
         bpy.context.scene.render.filepath=os.path.join(output_dir, 'Main_{}_.png'.format(bvh1_fname))
         bpy.ops.render.render(write_still=True)
-        get_camera(actor1 + '_cam')
+        create_camera.get_camera(actor1 + '_cam')
         bpy.data.objects[actor1].children[1].hide_render = True
         bpy.data.objects[actor2].children[1].hide_render = False
         bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_.png'.format(bvh1_fname))
         bpy.ops.render.render(write_still=True)
-        get_camera(actor2 + '_cam')
+        create_camera.get_camera(actor2 + '_cam')
         bpy.data.objects[actor1].children[1].hide_render = False
         bpy.data.objects[actor2].children[1].hide_render = True
         bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_.png'.format(bvh2_fname))
@@ -230,17 +97,17 @@ def render_video(output_dir, picture, video, bvh1_fname, bvh2_fname, actor1, act
         bpy.context.scene.render.ffmpeg.constant_rate_factor='HIGH'
         bpy.context.scene.render.ffmpeg.audio_codec='MP3'
         bpy.context.scene.render.ffmpeg.gopsize = 30
-        get_camera(actor2 + '_cam')
+        create_camera.get_camera(actor2 + '_cam')
         bpy.data.objects[actor1].children[1].hide_render = True
         bpy.data.objects[actor2].children[1].hide_render = False
         bpy.context.scene.render.filepath = BVH1_filepath
         bpy.ops.render.render(animation=True, write_still=True)
-        get_camera(actor1 + '_cam')
+        create_camera.get_camera(actor1 + '_cam')
         bpy.data.objects[actor1].children[1].hide_render = False
         bpy.data.objects[actor2].children[1].hide_render = True
         bpy.context.scene.render.filepath = BVH2_filepath
         bpy.ops.render.render(animation=True, write_still=True)
-        get_camera('Main_cam')
+        create_camera.get_camera('Main_cam')
         bpy.data.objects[actor1].children[1].hide_render = False
         bpy.data.objects[actor2].children[1].hide_render = False
         bpy.context.scene.render.filepath = Main_filepath
@@ -261,66 +128,11 @@ def parse_args():
     parser.add_argument('-v', '--video', action='store_true', help='Renders the result in an MP4-formatted video.')
     parser.add_argument('-m', "--visualization_mode", help='The visualization mode to use for rendering.',type=str, choices=['full_body', 'upper_body'], default='full_body')
     parser.add_argument('-rx', '--res_x', help='The horizontal resolution for the rendered videos.', type=int, default=1280)
-    parser.add_argument('-ry', '--res_y', help='The vertical resolution for the rendered videos.', type=int, default=720)  
+    parser.add_argument('-ry', '--res_y', help='The vertical resolution for the rendered videos.', type=int, default=720)
+    parser.add_argument('-sb', '--speechbubble', action='store_true', help='Visualize speaker bubble.')
     argv = sys.argv
     argv = argv[argv.index("--") + 1 :]
     return vars(parser.parse_args(args=argv))
-
-def read_audio_strided(audio, stride, start, stop):
-    rate = audio.getframerate()
-    if start < 0: start = 0 # seconds
-    if stop  < 0: stop  = audio.getnframes() / rate # seconds
-    stop     = math.floor(stop * rate)     # samples
-    start    = math.floor(start * rate)    # samples
-    stride   = math.floor(stride * rate)   # samples
-    if start > audio.getnframes(): start = audio.getnframes() - 1
-    if stop  > audio.getnframes(): stop  = audio.getnframes()
-    duration = stop - start # samples
-
-    data = []
-    sample_count = math.ceil(duration / stride) # samples
-    positions = [start + stride * i for i in range(sample_count)]
-    for p in positions:
-        if p >= audio.getnframes():
-            break
-        audio.setpos(p)
-        sample = np.frombuffer(audio.readframes(1), dtype=np.int16)[0]
-        data.append(sample)
-    return data
-
-def get_volume(audio, time):
-    volume = -1
-    time_range = 0.01 # 220 samples (110 before, 110 after)
-    stride = 0.001 # 22 samples
-    samples = read_audio_strided(audio, stride, time - time_range, time + time_range)
-    samples = [abs(x) for x in samples] # absolute
-    volume = max(samples)
-    return volume
-
-def get_volume_strided(audio, stride, start, stop):
-    if start < 0: start = 0
-    if stop  < 0: stop = audio.getnframes() / audio.getframerate()
-    times = []
-    v = start
-    i = 0
-    while v < stop:
-        v = start + stride * i
-        times.append(v)
-        i += 1
-    volumes = [get_volume(audio, t) for t in times]
-    return volumes
-
-def smooth_kernel(data, offset=5):
-    out_data = []
-    for i in range(len(data)):
-        start = max(0, i - offset)
-        stop = min(len(data), i + offset + 1)
-        out_data.append(data[i])
-        for j in range(start, stop):
-            if data[j] > 0:
-                out_data[-1] = 1
-                break
-    return out_data
 
 def main():
     IS_SERVER = "GENEA_SERVER" in os.environ
@@ -329,7 +141,7 @@ def main():
         
     if bpy.ops.text.run_script.poll():
         print('[INFO] Script is running in Blender UI.')
-        SCRIPT_DIR = Path(bpy.context.space_data.text.filepath).parents[0]
+        SCRIPT_DIR = myPath(bpy.context.space_data.text.filepath).parents[0]
         ##################################
         ##### SET ARGUMENTS MANUALLY #####
         ##### IF RUNNING BLENDER GUI #####
@@ -338,7 +150,7 @@ def main():
         ARG_BVH2_PATHNAME = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_interloctr.bvh'
         ARG_AUDIO_FILE_NAME1 = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_main-agent.wav' # set to None for no audio
         ARG_AUDIO_FILE_NAME2 = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_interloctr.wav' # set to None for no audio
-        ARG_IMAGE = False
+        ARG_IMAGE = True
         ARG_VIDEO = True
         ARG_START_FRAME = 0
         ARG_DURATION_IN_FRAMES = 600
@@ -346,12 +158,13 @@ def main():
         ARG_RESOLUTION_X = 1280
         ARG_RESOLUTION_Y = 720
         ARG_MODE = 'full_body'
+        ARG_BUBBLE = False
         # might need to adjust output directory
         ARG_OUTPUT_DIR = SCRIPT_DIR / 'output/'
         print('ARG_OUTPUT_DIR: ', ARG_OUTPUT_DIR)
     else:
         print('[INFO] Script is running from command line.')
-        SCRIPT_DIR = Path(os.path.realpath(__file__)).parents[0]
+        SCRIPT_DIR = myPath(os.path.realpath(__file__)).parents[0]
         # process arguments
         args = parse_args()
         ARG_BVH1_PATHNAME = args['input1']
@@ -366,6 +179,7 @@ def main():
         ARG_RESOLUTION_X = args['res_x']
         ARG_RESOLUTION_Y = args['res_y']
         ARG_MODE = args['visualization_mode']
+        ARG_BUBBLE = args['speechbubble']
         # might need to adjust output directory
         ARG_OUTPUT_DIR = args['output_dir'].resolve() if args['output_dir'] else SCRIPT_DIR / 'output/'
         
@@ -384,19 +198,20 @@ def main():
     clear_scene()
     
     OBJ1_friendly_name = 'OBJ1'
-    load_fbx(FBX_MODEL, OBJ1_friendly_name)
-    add_materials(SCRIPT_DIR, OBJ1_friendly_name)
-    load_bvh(str(ARG_BVH1_PATHNAME))
-    constraintBoneTargets(armature = OBJ1_friendly_name, rig = BVH1_NAME, mode = ARG_MODE)
+    load_data.load_fbx(FBX_MODEL, OBJ1_friendly_name)
+    create_material.add_materials(SCRIPT_DIR, OBJ1_friendly_name)
+    load_data.load_bvh(str(ARG_BVH1_PATHNAME))
+    edit_character.constraintBoneTargets(armature = OBJ1_friendly_name, rig = BVH1_NAME, mode = ARG_MODE)
     
     OBJ2_friendly_name = 'OBJ2'
-    load_fbx(FBX_MODEL, OBJ2_friendly_name)
-    add_materials(SCRIPT_DIR, OBJ2_friendly_name)
-    load_bvh(str(ARG_BVH2_PATHNAME))
-    constraintBoneTargets(armature = OBJ2_friendly_name, rig = BVH2_NAME, mode = ARG_MODE)
+    load_data.load_fbx(FBX_MODEL, OBJ2_friendly_name)
+    create_material.add_materials(SCRIPT_DIR, OBJ2_friendly_name)
+    load_data.load_bvh(str(ARG_BVH2_PATHNAME))
+    edit_character.constraintBoneTargets(armature = OBJ2_friendly_name, rig = BVH2_NAME, mode = ARG_MODE)
     
-    setup_characters(BVH1_NAME,BVH2_NAME)
+    edit_character.setup_characters(BVH1_NAME,BVH2_NAME)
     
+    create_sequencer()
     # for sanity, audio is handled using FFMPEG on the server and the input_audio argument should be ignored
     try:
         ARG_AUDIO_FILE_NAME1
@@ -409,11 +224,11 @@ def main():
         ARG_AUDIO_FILE_NAME2 = ''
         
     if ARG_AUDIO_FILE_NAME1 and not IS_SERVER:
-        load_audio(str(ARG_AUDIO_FILE_NAME1), 1)
+        load_data.load_audio(str(ARG_AUDIO_FILE_NAME1), 1)
         audio1 = bpy.data.sounds[AUDIO1_NAME]
         
     if ARG_AUDIO_FILE_NAME2 and not IS_SERVER:
-        load_audio(str(ARG_AUDIO_FILE_NAME2), 2)
+        load_data.load_audio(str(ARG_AUDIO_FILE_NAME2), 2)
         audio2 = bpy.data.sounds[AUDIO2_NAME]
     
     bpy.context.scene.sequence_editor.sequences_all['AudioClip1'].volume = 20
@@ -424,45 +239,46 @@ def main():
     
     framerate = bpy.context.scene.render.fps
     audio_proc1 = wave.open(os.path.abspath(ARG_AUDIO_FILE_NAME1), 'rb')
-    audio_samples1 = get_volume_strided(audio_proc1, 1 / framerate, -1, -1)
+    audio_samples1 = edit_audio.get_volume_strided(audio_proc1, 1 / framerate, -1, -1)
     audio_samples1 = [abs(x) / 32768 for x in audio_samples1] # normalize scale between 0 and 1
     audio_samples1 = [x / max(audio_samples1) for x in audio_samples1] # normalize data between 0 and 1
     audio_samples1 = [0 if x < 0.2 else 1 for x in audio_samples1]
-    audio_samples1 = smooth_kernel(audio_samples1, 10)
+    audio_samples1 = edit_audio.smooth_kernel(audio_samples1, 10)
     audio_samples1 = [max(0.0075, x * 0.05) for x in audio_samples1] # scale down and clamp to min
     
     audio_proc2 = wave.open(os.path.abspath(ARG_AUDIO_FILE_NAME2), 'rb')
-    audio_samples2 = get_volume_strided(audio_proc2, 1 / framerate, -1, -1)
+    audio_samples2 = edit_audio.get_volume_strided(audio_proc2, 1 / framerate, -1, -1)
     audio_samples2 = [abs(x) / 32768 for x in audio_samples2] # normalize scale between 0 and 1
     audio_samples2 = [x / max(audio_samples2) for x in audio_samples2] # normalize data between 0 and 1
     audio_samples2 = [0 if x < 0.2 else 1 for x in audio_samples2]
-    audio_samples2 = smooth_kernel(audio_samples2, 10)
+    audio_samples2 = edit_audio.smooth_kernel(audio_samples2, 10)
     audio_samples2 = [max(0.0075, x * 0.05) for x in audio_samples2] # scale down and clamp to min
     
-    bubble1 = add_speechbubble(0.75)
-    bubble2 = add_speechbubble(-0.75)
-    
-    for i in range(ARG_DURATION_IN_FRAMES):
-        start_frame = i * framerate
-        end_frame = (i + 1) * framerate
-        if i < len(audio_samples1):
-            a1s = audio_samples1[i]
-            a2s = audio_samples2[i]
-        else:
-            a1s = audio_samples1[-1]
-            a2s = audio_samples2[-1]
+    if ARG_BUBBLE == True:
+        bubble1 = create_scene.add_speechbubble(0.75)
+        bubble2 = create_scene.add_speechbubble(-0.75)
         
-        bubble1.scale = (a1s, a1s, a1s)
-        bubble1.keyframe_insert(data_path='scale', frame=i)
-        
-        bubble2.scale = (a2s, a2s, a2s)
-        bubble2.keyframe_insert(data_path='scale', frame=i)
+        for i in range(ARG_DURATION_IN_FRAMES):
+            start_frame = i * framerate
+            end_frame = (i + 1) * framerate
+            if i < len(audio_samples1):
+                a1s = audio_samples1[i]
+                a2s = audio_samples2[i]
+            else:
+                a1s = audio_samples1[-1]
+                a2s = audio_samples2[-1]
+            
+            bubble1.scale = (a1s, a1s, a1s)
+            bubble1.keyframe_insert(data_path='scale', frame=i)
+            
+            bubble2.scale = (a2s, a2s, a2s)
+            bubble2.keyframe_insert(data_path='scale', frame=i)
       
     # 05/04/2023 fix main camera orientation, fix character rotation and personal cameras
     if ARG_MODE == "full_body":     CAM_POS = [3.25, 0, 1.8]
     elif ARG_MODE == "upper_body":  CAM_POS = [0, -2.45, 1.3]
     MAIN_CAM_ROT = [math.radians(80), 0, math.radians(90)]
-    setup_scene(CAM_POS, MAIN_CAM_ROT, bpy.data.objects[OBJ1_friendly_name], bpy.data.objects[OBJ2_friendly_name], BVH1_NAME, BVH2_NAME)
+    create_scene.setup_scene(CAM_POS, MAIN_CAM_ROT, bpy.data.objects[OBJ1_friendly_name], bpy.data.objects[OBJ2_friendly_name], BVH1_NAME, BVH2_NAME)
         
     total_frames1 = bpy.data.objects[BVH1_NAME].animation_data.action.frame_range.y
     total_frames2 = bpy.data.objects[BVH2_NAME].animation_data.action.frame_range.y
@@ -529,6 +345,12 @@ def main():
         seq_filepath = os.path.join(str(ARG_OUTPUT_DIR), 'Sequence.mp4')
         bpy.context.scene.render.filepath = seq_filepath
         bpy.ops.render.render(animation=True)
+    
+    if ARG_IMAGE == True:
+        bpy.context.scene.render.image_settings.file_format='PNG'
+        seq_filepath = os.path.join(str(ARG_OUTPUT_DIR), 'Sequence.png')
+        bpy.context.scene.render.filepath = seq_filepath
+        bpy.ops.render.render(write_still=True)
     
     end = time.time()
     all_time = end - start
