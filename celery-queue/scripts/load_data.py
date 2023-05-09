@@ -1,6 +1,7 @@
 import bpy
 from pathlib import Path as myPath
 import importlib
+import os
 
 if bpy.ops.text.run_script.poll():
     script_dir = myPath(bpy.context.space_data.text.filepath).parents[0]
