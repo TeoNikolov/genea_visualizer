@@ -153,7 +153,7 @@ def main():
         ARG_BVH2_PATHNAME = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_interloctr.bvh'
         ARG_AUDIO_FILE_NAME1 = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_main-agent.wav' # set to None for no audio
         ARG_AUDIO_FILE_NAME2 = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_interloctr.wav' # set to None for no audio
-        ARG_IMAGE = True
+        ARG_IMAGE = False
         ARG_VIDEO = True
         ARG_START_FRAME = 0
         ARG_DURATION_IN_FRAMES = 600
@@ -234,8 +234,8 @@ def main():
         load_data.load_audio(str(ARG_AUDIO_FILE_NAME2), 2)
         audio2 = bpy.data.sounds[AUDIO2_NAME]
     
-    bpy.context.scene.sequence_editor.sequences_all['AudioClip1'].volume = 20
-    bpy.context.scene.sequence_editor.sequences_all['AudioClip2'].volume = 20
+#    bpy.context.scene.sequence_editor.sequences_all['AudioClip1'].volume = 10
+#    bpy.context.scene.sequence_editor.sequences_all['AudioClip2'].volume = 10
     
     if not os.path.exists(str(ARG_OUTPUT_DIR)):
         os.mkdir(str(ARG_OUTPUT_DIR))
@@ -285,7 +285,7 @@ def main():
         
     total_frames1 = bpy.data.objects[BVH1_NAME].animation_data.action.frame_range.y
     total_frames2 = bpy.data.objects[BVH2_NAME].animation_data.action.frame_range.y
-    ARG_DURATION_IN_FRAMES = min([ARG_DURATION_IN_FRAMES, total_frames1, total_frames2])        
+    ARG_DURATION_IN_FRAMES = math.floor(min([ARG_DURATION_IN_FRAMES, total_frames1, total_frames2]))      
     main_fp, bvh1_fp, bvh2_fp = render_video(str(ARG_OUTPUT_DIR), ARG_IMAGE, ARG_VIDEO, BVH1_NAME, BVH2_NAME, OBJ1_friendly_name, OBJ2_friendly_name, ARG_START_FRAME, ARG_DURATION_IN_FRAMES, ARG_RESOLUTION_X, ARG_RESOLUTION_Y)
     
     audio1.use_mono = True
@@ -293,10 +293,10 @@ def main():
     bpy.context.scene.sequence_editor.sequences_all['AudioClip1'].pan = 1
     bpy.context.scene.sequence_editor.sequences_all['AudioClip2'].pan = -1
     
-    bvh1_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input1', filepath=bvh1_fp, channel=3, frame_start=0)
+    bvh1_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input1', filepath=bvh1_fp, channel=3, frame_start=ARG_START_FRAME)
     bvh1_mp4.mute = True
     bvh1_mp4.use_proxy = False
-    input1_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input1_effect', type='TRANSFORM', channel=4, frame_start=0, seq1=bvh1_mp4)
+    input1_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input1_effect', type='TRANSFORM', channel=4, frame_start=ARG_START_FRAME, seq1=bvh1_mp4)
     input1_effect.use_uniform_scale = True
     input1_effect.transform.offset_x = -350
     input1_effect.transform.offset_y = 0
@@ -305,10 +305,10 @@ def main():
     input1_effect.crop.max_x = 300
     input1_effect.crop.min_x = 300
     
-    bvh2_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input2', filepath=bvh2_fp, channel=5, frame_start=0)
+    bvh2_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input2', filepath=bvh2_fp, channel=5, frame_start=ARG_START_FRAME)
     bvh2_mp4.mute = True
     bvh2_mp4.use_proxy = False
-    input2_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input2_effect', type='TRANSFORM', channel=6, frame_start=0, seq1=bvh2_mp4)
+    input2_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input2_effect', type='TRANSFORM', channel=6, frame_start=ARG_START_FRAME, seq1=bvh2_mp4)
     input2_effect.use_uniform_scale = True
     input2_effect.transform.offset_x = 350
     input2_effect.transform.offset_y = 0
@@ -317,10 +317,10 @@ def main():
     input2_effect.crop.max_x = 300
     input2_effect.crop.min_x = 300
     
-    main_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input3', filepath=main_fp, channel=7, frame_start=0)
+    main_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input3', filepath=main_fp, channel=7, frame_start=ARG_START_FRAME)
     main_mp4.mute = True
     main_mp4.use_proxy = False
-    input3_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input3_effect', type='TRANSFORM', channel=8, frame_start=0, seq1=main_mp4)
+    input3_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input3_effect', type='TRANSFORM', channel=8, frame_start=ARG_START_FRAME, seq1=main_mp4)
     input3_effect.use_uniform_scale = True
     input3_effect.scale_start_x = 0.225
     input3_effect.transform.offset_x = 0
@@ -332,13 +332,13 @@ def main():
     input3_effect.crop.max_x = 450
     input3_effect.crop.min_x = 450
     
-    text_actor1 = bpy.context.scene.sequence_editor.sequences.new_effect(name='Main_Agent',type='TEXT', channel=9, frame_start=0, frame_end=ARG_DURATION_IN_FRAMES + 1)
+    text_actor1 = bpy.context.scene.sequence_editor.sequences.new_effect(name='Main_Agent',type='TEXT', channel=9, frame_start=ARG_START_FRAME, frame_end=ARG_START_FRAME + ARG_DURATION_IN_FRAMES + 1)
     text_actor1.font_size = 30
     text_actor1.location[0] = 0.92
     text_actor1.location[1] = 0.04
     text_actor1.text = "Main Agent"
     
-    text_actor2 = bpy.context.scene.sequence_editor.sequences.new_effect(name='Interlocutor',type='TEXT', channel=10, frame_start=0, frame_end=ARG_DURATION_IN_FRAMES + 1)
+    text_actor2 = bpy.context.scene.sequence_editor.sequences.new_effect(name='Interlocutor',type='TEXT', channel=10, frame_start=ARG_START_FRAME, frame_end=ARG_START_FRAME + ARG_DURATION_IN_FRAMES + 1)
     text_actor2.font_size = 30
     text_actor2.location[0] = 0.10
     text_actor2.location[1] = 0.04
