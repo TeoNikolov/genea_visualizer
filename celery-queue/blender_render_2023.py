@@ -57,7 +57,7 @@ def clear_scene():
 def create_sequencer():
     bpy.context.scene.sequence_editor_create()
     
-def render_video(output_dir, picture, video, bvh1_fname, bvh2_fname, actor1, actor2, render_frame_start, render_frame_length, res_x, res_y):
+def render_video(output_dir, picture, video, filename_token, actor1, actor2, render_frame_start, render_frame_length, res_x, res_y):
     bpy.context.scene.render.engine = 'BLENDER_WORKBENCH'
     bpy.context.scene.display.shading.light = 'MATCAP'
     bpy.context.scene.display.render_aa = 'FXAA'
@@ -74,22 +74,22 @@ def render_video(output_dir, picture, video, bvh1_fname, bvh2_fname, actor1, act
         create_camera.get_camera('Main_cam')
         bpy.data.objects[actor1].children[1].hide_render = False
         bpy.data.objects[actor2].children[1].hide_render = False
-        bpy.context.scene.render.filepath=os.path.join(output_dir, 'Main_{}_.png'.format(bvh1_fname))
+        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_dyadic_.png'.format(filename_token))
         bpy.ops.render.render(write_still=True)
         create_camera.get_camera(actor1 + '_cam')
         bpy.data.objects[actor1].children[1].hide_render = True
         bpy.data.objects[actor2].children[1].hide_render = False
-        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_.png'.format(bvh1_fname))
+        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_main_.png'.format(filename_token))
         bpy.ops.render.render(write_still=True)
         create_camera.get_camera(actor2 + '_cam')
         bpy.data.objects[actor1].children[1].hide_render = False
         bpy.data.objects[actor2].children[1].hide_render = True
-        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_.png'.format(bvh2_fname))
+        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_intr_.png'.format(filename_token))
         bpy.ops.render.render(write_still=True)
     
-    BVH1_filepath = os.path.join(output_dir, '{}.mp4'.format(bvh1_fname))
-    BVH2_filepath = os.path.join(output_dir, '{}.mp4'.format(bvh2_fname))
-    Main_filepath = os.path.join(output_dir, 'Main_{}.mp4'.format(bvh1_fname))
+    main_filepath = os.path.join(output_dir, '{}_main.mp4'.format(filename_token))
+    intr_filepath = os.path.join(output_dir, '{}_intr.mp4'.format(filename_token))
+    dyad_filepath = os.path.join(output_dir, '{}_dyadic.mp4'.format(filename_token))
     
     if video:
         print(f"total_frames {render_frame_length}", flush=True)
@@ -103,19 +103,19 @@ def render_video(output_dir, picture, video, bvh1_fname, bvh2_fname, actor1, act
         create_camera.get_camera(actor2 + '_cam')
         bpy.data.objects[actor1].children[1].hide_render = True
         bpy.data.objects[actor2].children[1].hide_render = False
-        bpy.context.scene.render.filepath = BVH1_filepath
+        bpy.context.scene.render.filepath = main_filepath
         bpy.ops.render.render(animation=True, write_still=True)
         create_camera.get_camera(actor1 + '_cam')
         bpy.data.objects[actor1].children[1].hide_render = False
         bpy.data.objects[actor2].children[1].hide_render = True
-        bpy.context.scene.render.filepath = BVH2_filepath
+        bpy.context.scene.render.filepath = intr_filepath
         bpy.ops.render.render(animation=True, write_still=True)
         create_camera.get_camera('Main_cam')
         bpy.data.objects[actor1].children[1].hide_render = False
         bpy.data.objects[actor2].children[1].hide_render = False
-        bpy.context.scene.render.filepath = Main_filepath
+        bpy.context.scene.render.filepath = dyad_filepath
         bpy.ops.render.render(animation=True, write_still=True)
-    return Main_filepath, BVH1_filepath, BVH2_filepath
+    return dyad_filepath, main_filepath, intr_filepath
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Some description.", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -286,7 +286,8 @@ def main():
     total_frames1 = bpy.data.objects[BVH1_NAME].animation_data.action.frame_range.y
     total_frames2 = bpy.data.objects[BVH2_NAME].animation_data.action.frame_range.y
     ARG_DURATION_IN_FRAMES = math.floor(min([ARG_DURATION_IN_FRAMES, total_frames1, total_frames2]))      
-    main_fp, bvh1_fp, bvh2_fp = render_video(str(ARG_OUTPUT_DIR), ARG_IMAGE, ARG_VIDEO, BVH1_NAME, BVH2_NAME, OBJ1_friendly_name, OBJ2_friendly_name, ARG_START_FRAME, ARG_DURATION_IN_FRAMES, ARG_RESOLUTION_X, ARG_RESOLUTION_Y)
+    filename_token = MAIN_BVH_NAME
+    main_fp, bvh1_fp, bvh2_fp = render_video(str(ARG_OUTPUT_DIR), ARG_IMAGE, ARG_VIDEO, filename_token, OBJ1_friendly_name, OBJ2_friendly_name, ARG_START_FRAME, ARG_DURATION_IN_FRAMES, ARG_RESOLUTION_X, ARG_RESOLUTION_Y)
     
     audio1.use_mono = True
     audio2.use_mono = True
