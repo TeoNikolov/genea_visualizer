@@ -119,14 +119,14 @@ def render_video(output_dir, picture, video, filename_token, actor1, actor2, ren
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Some description.", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-i1', '--input1', help='Input file name of the first BVH to render.', type=myPath, required=True)
-    parser.add_argument('-i2', '--input2', help='Input file name of the second BVH to render.', type=myPath, required=True)
+    parser.add_argument('-imb', '--input_main_bvh', help='Input filename of the main agent BVH motion file.', type=myPath, required=True)
+    parser.add_argument('-iib', '--input_intr_bvh', help='Input filename of the interlocutor BVH motion file', type=myPath, required=True)
+    parser.add_argument('-imw', '--input_main_wav', help='Input filename of the main agent WAV audio file.', type=myPath)
+    parser.add_argument('-iiw', '--input_intr_wav', help='Input filename of the interlocutor WAV audio file.', type=myPath)
     parser.add_argument('-o', '--output_dir', help='Output directory where the rendered video files will be saved to. Will use "<script directory/output/" if not specified.', type=myPath)
     parser.add_argument('-s', '--start', help='Which frame to start rendering from.', type=int, default=0)
     parser.add_argument('-r', '--rotate', help='Rotates the character for better positioning in the video frame. Use "cw" for 90-degree clockwise, "ccw" for 90-degree counter-clockwise, "flip" for 180 degree rotation, or leave at "default" for no rotation.', choices=['default', 'cw', 'ccw', 'flip'], type=str, default="default")
     parser.add_argument('-d', '--duration', help='How many consecutive frames to render.', type=int, default=3600)
-    parser.add_argument('-a1', '--input_audio1', help='Input file name of the first audio clip to include in the final render.', type=myPath)
-    parser.add_argument('-a2', '--input_audio2', help='Input file name of the second audio clip to include in the final render.', type=myPath)
     parser.add_argument('-p', '--png', action='store_true', help='Renders the result in a PNG-formatted image.')
     parser.add_argument('-v', '--video', action='store_true', help='Renders the result in an MP4-formatted video.')
     parser.add_argument('-m', "--visualization_mode", help='The visualization mode to use for rendering.',type=str, choices=['full_body', 'upper_body'], default='full_body')
@@ -149,10 +149,10 @@ def main():
         ##### SET ARGUMENTS MANUALLY #####
         ##### IF RUNNING BLENDER GUI #####
         ##################################
-        ARG_BVH1_PATHNAME = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_main-agent.bvh'
-        ARG_BVH2_PATHNAME = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_interloctr.bvh'
-        ARG_AUDIO_FILE_NAME1 = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_main-agent.wav' # set to None for no audio
-        ARG_AUDIO_FILE_NAME2 = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_interloctr.wav' # set to None for no audio
+        ARG_MAIN_BVH_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_main-agent.bvh'
+        ARG_INTR_BVH_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_interloctr.bvh'
+        ARG_MAIN_AUDIO_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_main-agent.wav' # set to None for no audio
+        ARG_INTR_AUDIO_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_interloctr.wav' # set to None for no audio
         ARG_IMAGE = False
         ARG_VIDEO = True
         ARG_START_FRAME = 0
@@ -170,10 +170,10 @@ def main():
         SCRIPT_DIR = myPath(os.path.realpath(__file__)).parents[0]
         # process arguments
         args = parse_args()
-        ARG_BVH1_PATHNAME = args['input1']
-        ARG_BVH2_PATHNAME = args['input2']
-        ARG_AUDIO_FILE_NAME1 = args['input_audio1'].resolve() if args['input_audio1'] else None
-        ARG_AUDIO_FILE_NAME2 = args['input_audio2'].resolve() if args['input_audio2'] else None
+        ARG_MAIN_BVH_FILE = args['input_main_bvh']
+        ARG_INTR_BVH_FILE = args['input_intr_bvh']
+        ARG_MAIN_AUDIO_FILE = args['input_main_wav'].resolve() if args['input_main_wav'] else None
+        ARG_INTR_AUDIO_FILE = args['input_intr_wav'].resolve() if args['input_intr_wav'] else None
         ARG_IMAGE = args['png']
         ARG_VIDEO = args['video'] # set to 'False' to get a quick image preview
         ARG_START_FRAME = args['start']
@@ -191,10 +191,10 @@ def main():
     
     # FBX file
     FBX_MODEL = os.path.join(SCRIPT_DIR, 'model', "GenevaModel_v2_Tpose_Final.fbx")
-    BVH1_NAME = os.path.basename(ARG_BVH1_PATHNAME).replace('.bvh','')
-    BVH2_NAME = os.path.basename(ARG_BVH2_PATHNAME).replace('.bvh','')
-    AUDIO1_NAME = os.path.basename(ARG_AUDIO_FILE_NAME1)
-    AUDIO2_NAME = os.path.basename(ARG_AUDIO_FILE_NAME2)
+    MAIN_BVH_NAME = os.path.basename(ARG_MAIN_BVH_FILE).replace('.bvh','')
+    INTR_BVH_NAME = os.path.basename(ARG_INTR_BVH_FILE).replace('.bvh','')
+    AUDIO1_NAME = os.path.basename(ARG_MAIN_AUDIO_FILE)
+    AUDIO2_NAME = os.path.basename(ARG_INTR_AUDIO_FILE)
 
     start = time.time()
     
@@ -203,35 +203,35 @@ def main():
     OBJ1_friendly_name = 'OBJ1'
     load_data.load_fbx(FBX_MODEL, OBJ1_friendly_name)
     create_material.add_materials(SCRIPT_DIR, OBJ1_friendly_name)
-    load_data.load_bvh(str(ARG_BVH1_PATHNAME))
-    edit_character.constraintBoneTargets(armature = OBJ1_friendly_name, rig = BVH1_NAME, mode = ARG_MODE)
+    load_data.load_bvh(str(ARG_MAIN_BVH_FILE))
+    edit_character.constraintBoneTargets(armature = OBJ1_friendly_name, rig = MAIN_BVH_NAME, mode = ARG_MODE)
     
     OBJ2_friendly_name = 'OBJ2'
     load_data.load_fbx(FBX_MODEL, OBJ2_friendly_name)
     create_material.add_materials(SCRIPT_DIR, OBJ2_friendly_name)
-    load_data.load_bvh(str(ARG_BVH2_PATHNAME))
-    edit_character.constraintBoneTargets(armature = OBJ2_friendly_name, rig = BVH2_NAME, mode = ARG_MODE)
+    load_data.load_bvh(str(ARG_INTR_BVH_FILE))
+    edit_character.constraintBoneTargets(armature = OBJ2_friendly_name, rig = INTR_BVH_NAME, mode = ARG_MODE)
     
-    edit_character.setup_characters(BVH1_NAME,BVH2_NAME)
+    edit_character.setup_characters(MAIN_BVH_NAME, INTR_BVH_NAME)
     
     create_sequencer()
     # for sanity, audio is handled using FFMPEG on the server and the input_audio argument should be ignored
     try:
-        ARG_AUDIO_FILE_NAME1
+        ARG_MAIN_AUDIO_FILE
     except:
-        ARG_AUDIO_FILE_NAME1 = ''
+        ARG_MAIN_AUDIO_FILE = ''
         
     try:
-        ARG_AUDIO_FILE_NAME2
+        ARG_INTR_AUDIO_FILE
     except:
-        ARG_AUDIO_FILE_NAME2 = ''
+        ARG_INTR_AUDIO_FILE = ''
         
-    if ARG_AUDIO_FILE_NAME1 and not IS_SERVER:
-        load_data.load_audio(str(ARG_AUDIO_FILE_NAME1), 1)
+    if ARG_MAIN_AUDIO_FILE and not IS_SERVER:
+        load_data.load_audio(str(ARG_MAIN_AUDIO_FILE), 1)
         audio1 = bpy.data.sounds[AUDIO1_NAME]
         
-    if ARG_AUDIO_FILE_NAME2 and not IS_SERVER:
-        load_data.load_audio(str(ARG_AUDIO_FILE_NAME2), 2)
+    if ARG_INTR_AUDIO_FILE and not IS_SERVER:
+        load_data.load_audio(str(ARG_INTR_AUDIO_FILE), 2)
         audio2 = bpy.data.sounds[AUDIO2_NAME]
     
 #    bpy.context.scene.sequence_editor.sequences_all['AudioClip1'].volume = 10
@@ -241,7 +241,7 @@ def main():
         os.mkdir(str(ARG_OUTPUT_DIR))
     
     framerate = bpy.context.scene.render.fps
-    audio_proc1 = wave.open(os.path.abspath(ARG_AUDIO_FILE_NAME1), 'rb')
+    audio_proc1 = wave.open(os.path.abspath(ARG_MAIN_AUDIO_FILE), 'rb')
     audio_samples1 = edit_audio.get_volume_strided(audio_proc1, 1 / framerate, -1, -1)
     audio_samples1 = [abs(x) / 32768 for x in audio_samples1] # normalize scale between 0 and 1
     audio_samples1 = [x / max(audio_samples1) for x in audio_samples1] # normalize data between 0 and 1
@@ -249,7 +249,7 @@ def main():
     audio_samples1 = edit_audio.smooth_kernel(audio_samples1, 10)
     audio_samples1 = [max(0.0075, x * 0.05) for x in audio_samples1] # scale down and clamp to min
     
-    audio_proc2 = wave.open(os.path.abspath(ARG_AUDIO_FILE_NAME2), 'rb')
+    audio_proc2 = wave.open(os.path.abspath(ARG_INTR_AUDIO_FILE), 'rb')
     audio_samples2 = edit_audio.get_volume_strided(audio_proc2, 1 / framerate, -1, -1)
     audio_samples2 = [abs(x) / 32768 for x in audio_samples2] # normalize scale between 0 and 1
     audio_samples2 = [x / max(audio_samples2) for x in audio_samples2] # normalize data between 0 and 1
@@ -281,10 +281,10 @@ def main():
     if ARG_MODE == "full_body":     CAM_POS = [3.25, 0, 1.8]
     elif ARG_MODE == "upper_body":  CAM_POS = [0, -2.45, 1.3]
     MAIN_CAM_ROT = [math.radians(80), 0, math.radians(90)]
-    create_scene.setup_scene(CAM_POS, MAIN_CAM_ROT, bpy.data.objects[OBJ1_friendly_name], bpy.data.objects[OBJ2_friendly_name], BVH1_NAME, BVH2_NAME)
+    create_scene.setup_scene(CAM_POS, MAIN_CAM_ROT, bpy.data.objects[OBJ1_friendly_name], bpy.data.objects[OBJ2_friendly_name], MAIN_BVH_NAME, INTR_BVH_NAME)
         
-    total_frames1 = bpy.data.objects[BVH1_NAME].animation_data.action.frame_range.y
-    total_frames2 = bpy.data.objects[BVH2_NAME].animation_data.action.frame_range.y
+    total_frames1 = bpy.data.objects[MAIN_BVH_NAME].animation_data.action.frame_range.y
+    total_frames2 = bpy.data.objects[INTR_BVH_NAME].animation_data.action.frame_range.y
     ARG_DURATION_IN_FRAMES = math.floor(min([ARG_DURATION_IN_FRAMES, total_frames1, total_frames2]))      
     filename_token = MAIN_BVH_NAME
     main_fp, bvh1_fp, bvh2_fp = render_video(str(ARG_OUTPUT_DIR), ARG_IMAGE, ARG_VIDEO, filename_token, OBJ1_friendly_name, OBJ2_friendly_name, ARG_START_FRAME, ARG_DURATION_IN_FRAMES, ARG_RESOLUTION_X, ARG_RESOLUTION_Y)
