@@ -100,14 +100,14 @@ def render_video(output_dir, picture, video, filename_token, actor1, actor2, ren
         bpy.context.scene.render.ffmpeg.constant_rate_factor='HIGH'
         bpy.context.scene.render.ffmpeg.audio_codec='MP3'
         bpy.context.scene.render.ffmpeg.gopsize = 30
-        create_camera.get_camera(actor2 + '_cam')
-        bpy.data.objects[actor1].children[1].hide_render = True
-        bpy.data.objects[actor2].children[1].hide_render = False
-        bpy.context.scene.render.filepath = main_filepath
-        bpy.ops.render.render(animation=True, write_still=True)
         create_camera.get_camera(actor1 + '_cam')
         bpy.data.objects[actor1].children[1].hide_render = False
         bpy.data.objects[actor2].children[1].hide_render = True
+        bpy.context.scene.render.filepath = main_filepath
+        bpy.ops.render.render(animation=True, write_still=True)
+        create_camera.get_camera(actor2 + '_cam')
+        bpy.data.objects[actor1].children[1].hide_render = True
+        bpy.data.objects[actor2].children[1].hide_render = False
         bpy.context.scene.render.filepath = intr_filepath
         bpy.ops.render.render(animation=True, write_still=True)
         create_camera.get_camera('Main_cam')
@@ -294,14 +294,14 @@ def main():
     total_frames1 = bpy.data.objects[MAIN_BVH_NAME].animation_data.action.frame_range.y
     total_frames2 = bpy.data.objects[INTR_BVH_NAME].animation_data.action.frame_range.y
     ARG_DURATION_IN_FRAMES = math.floor(min([ARG_DURATION_IN_FRAMES, total_frames1, total_frames2]))      
-    main_fp, bvh1_fp, bvh2_fp = render_video(str(output_dir), ARG_IMAGE, ARG_VIDEO, output_name, OBJ1_friendly_name, OBJ2_friendly_name, ARG_START_FRAME, ARG_DURATION_IN_FRAMES, ARG_RESOLUTION_X, ARG_RESOLUTION_Y)
+    dyad_fp, main_fp, intr_fp = render_video(str(output_dir), ARG_IMAGE, ARG_VIDEO, output_name, OBJ1_friendly_name, OBJ2_friendly_name, ARG_START_FRAME, ARG_DURATION_IN_FRAMES, ARG_RESOLUTION_X, ARG_RESOLUTION_Y)
     
     audio1.use_mono = True
     audio2.use_mono = True
     bpy.context.scene.sequence_editor.sequences_all['AudioClip1'].pan = 1
     bpy.context.scene.sequence_editor.sequences_all['AudioClip2'].pan = -1
     
-    bvh1_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input1', filepath=bvh1_fp, channel=3, frame_start=ARG_START_FRAME)
+    bvh1_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input1', filepath=intr_fp, channel=3, frame_start=ARG_START_FRAME)
     bvh1_mp4.mute = True
     bvh1_mp4.use_proxy = False
     input1_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input1_effect', type='TRANSFORM', channel=4, frame_start=ARG_START_FRAME, seq1=bvh1_mp4)
@@ -313,7 +313,7 @@ def main():
     input1_effect.crop.max_x = 300
     input1_effect.crop.min_x = 300
     
-    bvh2_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input2', filepath=bvh2_fp, channel=5, frame_start=ARG_START_FRAME)
+    bvh2_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input2', filepath=main_fp, channel=5, frame_start=ARG_START_FRAME)
     bvh2_mp4.mute = True
     bvh2_mp4.use_proxy = False
     input2_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input2_effect', type='TRANSFORM', channel=6, frame_start=ARG_START_FRAME, seq1=bvh2_mp4)
@@ -325,7 +325,7 @@ def main():
     input2_effect.crop.max_x = 300
     input2_effect.crop.min_x = 300
     
-    main_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input3', filepath=main_fp, channel=7, frame_start=ARG_START_FRAME)
+    main_mp4 = bpy.context.scene.sequence_editor.sequences.new_movie(name='input3', filepath=dyad_fp, channel=7, frame_start=ARG_START_FRAME)
     main_mp4.mute = True
     main_mp4.use_proxy = False
     input3_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input3_effect', type='TRANSFORM', channel=8, frame_start=ARG_START_FRAME, seq1=main_mp4)
