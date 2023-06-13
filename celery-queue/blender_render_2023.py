@@ -79,16 +79,16 @@ def render_video(output_dir, picture, video, filename_token, actor1, actor2, ren
         create_camera.get_camera(actor1 + '_cam')
         bpy.data.objects[actor1].children[1].hide_render = True
         bpy.data.objects[actor2].children[1].hide_render = False
-        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_main_.png'.format(filename_token))
+        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_main-agent_.png'.format(filename_token))
         bpy.ops.render.render(write_still=True)
         create_camera.get_camera(actor2 + '_cam')
         bpy.data.objects[actor1].children[1].hide_render = False
         bpy.data.objects[actor2].children[1].hide_render = True
-        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_intr_.png'.format(filename_token))
+        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_interloctr_.png'.format(filename_token))
         bpy.ops.render.render(write_still=True)
     
-    main_filepath = os.path.join(output_dir, '{}_main.mp4'.format(filename_token))
-    intr_filepath = os.path.join(output_dir, '{}_intr.mp4'.format(filename_token))
+    main_filepath = os.path.join(output_dir, '{}_main-agent.mp4'.format(filename_token))
+    intr_filepath = os.path.join(output_dir, '{}_interloctr.mp4'.format(filename_token))
     dyad_filepath = os.path.join(output_dir, '{}_dyadic.mp4'.format(filename_token))
     
     if video:
@@ -124,6 +124,7 @@ def parse_args():
     parser.add_argument('-imw', '--input_main_wav', help='Input filename of the main agent WAV audio file.', type=myPath)
     parser.add_argument('-iiw', '--input_intr_wav', help='Input filename of the interlocutor WAV audio file.', type=myPath)
     parser.add_argument('-o', '--output_dir', help='Output directory where the rendered video files will be saved to. Will use "<script directory/output/" if not specified.', type=myPath)
+    parser.add_argument('-n', '--output_name', help='The name to use when outputting intermediate and final files. No periods \".\" or slashes \"/\" / \"\\\" allowed.', type=str, required=True)
     parser.add_argument('-s', '--start', help='Which frame to start rendering from.', type=int, default=0)
     parser.add_argument('-r', '--rotate', help='Rotates the character for better positioning in the video frame. Use "cw" for 90-degree clockwise, "ccw" for 90-degree counter-clockwise, "flip" for 180 degree rotation, or leave at "default" for no rotation.', choices=['default', 'cw', 'ccw', 'flip'], type=str, default="default")
     parser.add_argument('-d', '--duration', help='How many consecutive frames to render.', type=int, default=3600)
@@ -164,6 +165,7 @@ def main():
         ARG_BUBBLE = False
         # might need to adjust output directory
         ARG_OUTPUT_DIR = SCRIPT_DIR / 'output/'
+        ARG_OUTPUT_NAME = "blender_output"
         print('ARG_OUTPUT_DIR: ', ARG_OUTPUT_DIR)
     else:
         print('[INFO] Script is running from command line.')
@@ -185,10 +187,16 @@ def main():
         ARG_BUBBLE = args['speechbubble']
         # might need to adjust output directory
         ARG_OUTPUT_DIR = args['output_dir'].resolve() if args['output_dir'] else SCRIPT_DIR / 'output/'
+        ARG_OUTPUT_NAME = args['output_name']
         
     if ARG_MODE not in ["full_body", "upper_body", "both"]:
         raise NotImplementedError("This visualization mode is not supported ({})!".format(ARG_MODE))
     
+    output_dir = ARG_OUTPUT_DIR
+    output_name = ARG_OUTPUT_NAME
+    assert "." not in output_name, "No period (.) allowed in the output filename. The script sets the extensions automatically."
+    assert "/" not in output_name and "\\" not in output_name, "No directories allowed in output filename. Filename contains a slash \"/\" or \"\\\""
+
     # FBX file
     FBX_MODEL = os.path.join(SCRIPT_DIR, 'model', "GenevaModel_v2_Tpose_Final.fbx")
     MAIN_BVH_NAME = os.path.basename(ARG_MAIN_BVH_FILE).replace('.bvh','')
@@ -237,8 +245,8 @@ def main():
 #    bpy.context.scene.sequence_editor.sequences_all['AudioClip1'].volume = 10
 #    bpy.context.scene.sequence_editor.sequences_all['AudioClip2'].volume = 10
     
-    if not os.path.exists(str(ARG_OUTPUT_DIR)):
-        os.mkdir(str(ARG_OUTPUT_DIR))
+    if not os.path.exists(str(output_dir)):
+        os.mkdir(str(output_dir))
     
     framerate = bpy.context.scene.render.fps
     audio_proc1 = wave.open(os.path.abspath(ARG_MAIN_AUDIO_FILE), 'rb')
@@ -286,8 +294,7 @@ def main():
     total_frames1 = bpy.data.objects[MAIN_BVH_NAME].animation_data.action.frame_range.y
     total_frames2 = bpy.data.objects[INTR_BVH_NAME].animation_data.action.frame_range.y
     ARG_DURATION_IN_FRAMES = math.floor(min([ARG_DURATION_IN_FRAMES, total_frames1, total_frames2]))      
-    filename_token = MAIN_BVH_NAME
-    main_fp, bvh1_fp, bvh2_fp = render_video(str(ARG_OUTPUT_DIR), ARG_IMAGE, ARG_VIDEO, filename_token, OBJ1_friendly_name, OBJ2_friendly_name, ARG_START_FRAME, ARG_DURATION_IN_FRAMES, ARG_RESOLUTION_X, ARG_RESOLUTION_Y)
+    main_fp, bvh1_fp, bvh2_fp = render_video(str(output_dir), ARG_IMAGE, ARG_VIDEO, output_name, OBJ1_friendly_name, OBJ2_friendly_name, ARG_START_FRAME, ARG_DURATION_IN_FRAMES, ARG_RESOLUTION_X, ARG_RESOLUTION_Y)
     
     audio1.use_mono = True
     audio2.use_mono = True
@@ -346,19 +353,19 @@ def main():
     text_actor2.text = "Interlocutor"
     
     if ARG_VIDEO == True:
-        seq_filepath = os.path.join(str(ARG_OUTPUT_DIR), 'Sequence.mp4')
+        seq_filepath = os.path.join(str(output_dir), f'{output_name}.mp4')
         bpy.context.scene.render.filepath = seq_filepath
         bpy.ops.render.render(animation=True)
     
     if ARG_IMAGE == True:
         bpy.context.scene.render.image_settings.file_format='PNG'
-        seq_filepath = os.path.join(str(ARG_OUTPUT_DIR), 'Sequence.png')
+        seq_filepath = os.path.join(str(output_dir), f'{output_name}.png')
         bpy.context.scene.render.filepath = seq_filepath
         bpy.ops.render.render(write_still=True)
     
     end = time.time()
     all_time = end - start
-    print("output_file", str(list(ARG_OUTPUT_DIR.glob("*"))[0]), flush=True)
+    print("output_file", str(list(output_dir.glob("*"))[0]), flush=True)
     print(all_time)
 
 #Code line
