@@ -1,6 +1,4 @@
-**Update 14-06-2023:** The visualizer receives improved input and output handling of filenames. the original pre-updated code given to participants can be found [in this release](https://github.com/TeoNikolov/genea_visualizer/releases/tag/genea2023_release_participants).
-
-These are the changes:
+**Update 14-06-2023:** The visualizer receives improved input and output handling of filenames. (The original pre-updated code given to participants can be found [in this release](https://github.com/TeoNikolov/genea_visualizer/releases/tag/genea2023_release_participants)):
 - BVH and WAV audio file input args are now linked to the main agent and interlocutor:
   - `-i1` -> `-imb` (main agent BVH)
   - `-i2` -> `-iib` (interlocutor BVH)
