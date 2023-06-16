@@ -307,7 +307,7 @@ def main():
     input1_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input1_effect', type='TRANSFORM', channel=4, frame_start=ARG_START_FRAME, seq1=bvh1_mp4)
     input1_effect.use_uniform_scale = True
     input1_effect.transform.offset_x = -350
-    input1_effect.transform.offset_y = 0
+    input1_effect.transform.offset_y = 30
     input1_effect.transform.scale_y = 1.000001
     input1_effect.blend_type = 'ALPHA_OVER'
     input1_effect.crop.max_x = 300
@@ -319,7 +319,7 @@ def main():
     input2_effect = bpy.context.scene.sequence_editor.sequences.new_effect(name='input2_effect', type='TRANSFORM', channel=6, frame_start=ARG_START_FRAME, seq1=bvh2_mp4)
     input2_effect.use_uniform_scale = True
     input2_effect.transform.offset_x = 350
-    input2_effect.transform.offset_y = 0
+    input2_effect.transform.offset_y = 30
     input2_effect.transform.scale_y = 1.000001
     input2_effect.blend_type = 'ALPHA_OVER'
     input2_effect.crop.max_x = 300
@@ -332,7 +332,7 @@ def main():
     input3_effect.use_uniform_scale = True
     input3_effect.scale_start_x = 0.225
     input3_effect.transform.offset_x = 0
-    input3_effect.transform.offset_y = -279
+    input3_effect.transform.offset_y = -249
     input3_effect.blend_type = 'ALPHA_OVER'
 #    input3_effect.color_multiply = 1.05
     input3_effect.crop.max_y = 0
@@ -343,24 +343,26 @@ def main():
     text_actor1 = bpy.context.scene.sequence_editor.sequences.new_effect(name='Main_Agent',type='TEXT', channel=9, frame_start=ARG_START_FRAME, frame_end=ARG_START_FRAME + ARG_DURATION_IN_FRAMES + 1)
     text_actor1.font_size = 30
     text_actor1.location[0] = 0.92
-    text_actor1.location[1] = 0.04
+    text_actor1.location[1] = 0.11
     text_actor1.text = "Main Agent"
     
     text_actor2 = bpy.context.scene.sequence_editor.sequences.new_effect(name='Interlocutor',type='TEXT', channel=10, frame_start=ARG_START_FRAME, frame_end=ARG_START_FRAME + ARG_DURATION_IN_FRAMES + 1)
     text_actor2.font_size = 30
     text_actor2.location[0] = 0.10
-    text_actor2.location[1] = 0.04
+    text_actor2.location[1] = 0.11
     text_actor2.text = "Interlocutor"
     
     if ARG_VIDEO == True:
         seq_filepath = os.path.join(str(output_dir), f'{output_name}.mp4')
         bpy.context.scene.render.filepath = seq_filepath
+        bpy.context.scene.render.resolution_y = ARG_RESOLUTION_Y + 50
         bpy.ops.render.render(animation=True)
     
     if ARG_IMAGE == True:
         bpy.context.scene.render.image_settings.file_format='PNG'
         seq_filepath = os.path.join(str(output_dir), f'{output_name}.png')
         bpy.context.scene.render.filepath = seq_filepath
+        bpy.context.scene.render.resolution_y = ARG_RESOLUTION_Y + 50
         bpy.ops.render.render(write_still=True)
     
     end = time.time()
