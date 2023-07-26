@@ -28,7 +28,9 @@
 # GENEA Challenge 2020 BVH visualizer
 The very first installment of the GENEA Challenge 2020 visualizer is hosted in a different repo: https://github.com/jonepatr/genea_visualizer
 
-Thanks to [@AbelDoc](https://github.com/AbelDoc/), the visualizer also received a minimal version that can be used locally; it has its own repo: https://github.com/AbelDoc/GENEA_Visualiser_Local
+Thanks to [@AbelDoc](https://github.com/AbelDoc/), the visualizer received a minimal version that can be used locally. It is especially useful for batch-rendering BVH files and supports multiple rendering engines in Blender!
+
+The code is hosted here: https://github.com/AbelDoc/GENEA_Visualiser_Local
 
 # GENEA Challenge 2022 BVH visualizer
 The GENEA Challenge 2022 visualizer is archived at the `archive_2022` branch: https://github.com/TeoNikolov/genea_visualizer/tree/archive_2022
