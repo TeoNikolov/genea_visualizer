@@ -1,25 +1,8 @@
-**Update 14-06-2023:** The visualizer receives improved input and output handling of filenames. (The original pre-updated code given to participants can be found [in this release](https://github.com/TeoNikolov/genea_visualizer/releases/tag/genea2023_release_participants)):
-- BVH and WAV audio file input args are now linked to the main agent and interlocutor:
-  - `-i1` -> `-imb` (main agent BVH)
-  - `-i2` -> `-iib` (interlocutor BVH)
-  - `-a1` -> `-imw` (main agent WAV)
-  - `-a2` -> `-iiw` (interlocutor WAV)
-- A new "output name" arg `-n` must be specified by the user for handling filenames of intermediate and final output files:
-  - Do not include periods (`.`) or slashes (`/`, `\`) in the value. For example, `-n "my_output"` is allowed, but `-n "my_output.mp4"` or `-n "my_directory/my_output"` is not. Output directory should be specified using the `-o` arg.
-  - The final composited video no longer uses a hardcoded filename and will not be overwitten if a new composited video is rendered in the same directory as the first one. Instead, the composited video uses the value of `-n` as filename, with `.mp4` added at the end.
-
-**Warning:** In the GENEA Challenge 2022 we provided a Docker-based solution which was also hosted on a public server. Currently, GENEA Challenge 2023 does not support a server-based solution, and you will need to download Blender 2.93.9 . You will be notified if/when a self-hosted or public server solution is available to you.
-
-**Disclaimer:** The `master` branch is now dedicated to GENEA Challenge **2023**. If you wish to use the files from GENEA Challenge 2022, please switch to the `archive_2022` branch: https://github.com/TeoNikolov/genea_visualizer/tree/archive_2022
-
-# GENEA 2023 BVH Visualizer
-<p align="center">
-  <img src="demo.gif" alt="example from visualization server">
-  <br>
-  <i>Example output from the visualization server. The indicators above the speakers hint to the viewer that the speaker is engaged in "active speech".</i>
-</p>
-
-- [GENEA 2023 BVH Visualizer](#genea-2023-bvh-visualizer)
+# Table of Contents
+- [Important Updates](#important-updates)
+- [GENEA Challenge 2020 BVH visualizer](#genea-challenge-2020-bvh-visualizer)
+- [GENEA Challenge 2022 BVH visualizer](#genea-challenge-2022-bvh-visualizer)
+- [GENEA Challenge 2023 BVH visualizer](#genea-challenge-2023-bvh-visualizer)
   * [Introduction](#introduction)
   * [Blender Script](#blender-script)
     + [Using Blender UI](#using-blender-ui)
@@ -30,6 +13,32 @@
 - [Contact](#contact)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
+# Important Updates
+**14-06-2023:** The GENEA Challenge 2023 visualizer receives improved input and output handling of filenames. (The original pre-updated code given to participants can be found [in this release](https://github.com/TeoNikolov/genea_visualizer/releases/tag/genea2023_release_participants)):
+- BVH and WAV audio file input args are now linked to the main agent and interlocutor:
+  - `-i1` -> `-imb` (main agent BVH)
+  - `-i2` -> `-iib` (interlocutor BVH)
+  - `-a1` -> `-imw` (main agent WAV)
+  - `-a2` -> `-iiw` (interlocutor WAV)
+- A new "output name" arg `-n` must be specified by the user for handling filenames of intermediate and final output files:
+  - Do not include periods (`.`) or slashes (`/`, `\`) in the value. For example, `-n "my_output"` is allowed, but `-n "my_output.mp4"` or `-n "my_directory/my_output"` is not. Output directory should be specified using the `-o` arg.
+  - The final composited video no longer uses a hardcoded filename and will not be overwitten if a new composited video is rendered in the same directory as the first one. Instead, the composited video uses the value of `-n` as filename, with `.mp4` added at the end.
+
+# GENEA Challenge 2020 BVH visualizer
+The very first installment of the GENEA Challenge 2020 visualizer is hosted in a different repo: https://github.com/jonepatr/genea_visualizer
+
+Thanks to [@AbelDoc](https://github.com/AbelDoc/), the visualizer also received a minimal version that can be used locally; it has its own repo: https://github.com/AbelDoc/GENEA_Visualiser_Local
+
+# GENEA Challenge 2022 BVH visualizer
+The GENEA Challenge 2022 visualizer is archived at the `archive_2022` branch: https://github.com/TeoNikolov/genea_visualizer/tree/archive_2022
+
+# GENEA Challenge 2023 BVH visualizer
+<p align="center">
+  <img src="demo.gif" alt="example from visualization server">
+  <br>
+  <i>Example output from the visualization server. The indicators above the speakers hint to the viewer that the speaker is engaged in "active speech".</i>
+</p>
 
 ## Introduction
 
@@ -85,3 +94,4 @@ If you have any questions or comments, please contact:
 * Teodor Nikolov <tnikolov@hotmail.com>
 * Mihail Tsakov <tsakovm@gmail.com>
 * The GENEA Challenge & Workshop organisers <genea-contact@googlegroups.com>
+
