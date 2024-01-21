@@ -80,7 +80,22 @@ During the development of the visualizer, a variety of scripts were used for sta
 Currently, the default settings written inside the Blender script indicate the settings that will be used to render the final challenge stimuli of GENEA Challenge 2023. Please check this repository occasionally for any changes to these settings.
 
 # Citation
-*TBD*
+```
+@inproceedings{kucherenko2023genea,
+  author={Kucherenko, Taras and Nagy, Rajmund
+    and Yoon, Youngwoo and Woo, Jieyeon
+    and Nikolov, Teodor and Tsakov, Mihail
+    and Henter, Gustav Eje},
+  title={The {GENEA} {C}hallenge 2023: {A} large-scale
+    evaluation of gesture generation models in
+    monadic and dyadic settings},
+  booktitle = {Proceedings of the ACM International
+    Conference on Multimodal Interaction},
+  publisher = {ACM},
+  series = {ICMI '23},
+  year={2023}
+}
+```
 
 # Contact
 To find more GENEA Challenge 2023 material on the web, please see:
