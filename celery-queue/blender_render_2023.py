@@ -150,21 +150,25 @@ def main():
         ##### SET ARGUMENTS MANUALLY #####
         ##### IF RUNNING BLENDER GUI #####
         ##################################
-        ARG_MAIN_BVH_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_main-agent.bvh'
-        ARG_INTR_BVH_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_interloctr.bvh'
-        ARG_MAIN_AUDIO_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_main-agent.wav' # set to None for no audio
-        ARG_INTR_AUDIO_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_interloctr.wav' # set to None for no audio
+#        ARG_MAIN_BVH_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_main-agent.bvh'
+#        ARG_INTR_BVH_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_interloctr.bvh'
+#        ARG_MAIN_AUDIO_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_main-agent.wav' # set to None for no audio
+#        ARG_INTR_AUDIO_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_interloctr.wav' # set to None for no audio
+        ARG_MAIN_BVH_FILE = 'S:/Work/GENEA2022/genea2023_dataset_tst/tst/internal/main-agent/bvh/tst_2023_v0_024_main-agent.bvh'
+        ARG_INTR_BVH_FILE = 'S:/Work/GENEA2022/genea2023_dataset_tst/tst/interloctr/bvh/tst_2023_v0_024_interloctr.bvh'
+        ARG_MAIN_AUDIO_FILE = 'S:/Work/GENEA2022/genea2023_dataset_tst/tst/main-agent/wav_norm/tst_2023_v0_024_main-agent.wav' # set to None for no audio
+        ARG_INTR_AUDIO_FILE = 'S:/Work/GENEA2022/genea2023_dataset_tst/tst/interloctr/wav_norm/tst_2023_v0_024_interloctr.wav' # set to None for no audio
         ARG_IMAGE = False
         ARG_VIDEO = True
         ARG_START_FRAME = 0
-        ARG_DURATION_IN_FRAMES = 600
+        ARG_DURATION_IN_FRAMES = 300
         ARG_ROTATE = 'default'
         ARG_RESOLUTION_X = 1280
         ARG_RESOLUTION_Y = 720
         ARG_MODE = 'full_body'
-        ARG_BUBBLE = False
+        ARG_BUBBLE = True
         # might need to adjust output directory
-        ARG_OUTPUT_DIR = SCRIPT_DIR / 'output/'
+        ARG_OUTPUT_DIR = SCRIPT_DIR / 'output/benchmarkUI'
         ARG_OUTPUT_NAME = "blender_output"
         print('ARG_OUTPUT_DIR: ', ARG_OUTPUT_DIR)
     else:
@@ -201,8 +205,6 @@ def main():
     FBX_MODEL = os.path.join(SCRIPT_DIR, 'model', "GenevaModel_v2_Tpose_Final.fbx")
     MAIN_BVH_NAME = os.path.basename(ARG_MAIN_BVH_FILE).replace('.bvh','')
     INTR_BVH_NAME = os.path.basename(ARG_INTR_BVH_FILE).replace('.bvh','')
-    AUDIO1_NAME = os.path.basename(ARG_MAIN_AUDIO_FILE)
-    AUDIO2_NAME = os.path.basename(ARG_INTR_AUDIO_FILE)
 
     start = time.time()
     
@@ -233,17 +235,19 @@ def main():
         ARG_INTR_AUDIO_FILE
     except:
         ARG_INTR_AUDIO_FILE = ''
-        
+    
     if ARG_MAIN_AUDIO_FILE and not IS_SERVER:
+        AUDIO1_NAME = os.path.basename(ARG_MAIN_AUDIO_FILE)
         load_data.load_audio(str(ARG_MAIN_AUDIO_FILE), 1)
         audio1 = bpy.data.sounds[AUDIO1_NAME]
         
     if ARG_INTR_AUDIO_FILE and not IS_SERVER:
+        AUDIO2_NAME = os.path.basename(ARG_INTR_AUDIO_FILE)
         load_data.load_audio(str(ARG_INTR_AUDIO_FILE), 2)
         audio2 = bpy.data.sounds[AUDIO2_NAME]
     
 #    bpy.context.scene.sequence_editor.sequences_all['AudioClip1'].volume = 10
-#    bpy.context.scene.sequence_editor.sequences_all['AudioClip2'].volume = 10
+    bpy.context.scene.sequence_editor.sequences_all['AudioClip2'].volume = 0
     
     if not os.path.exists(str(output_dir)):
         os.mkdir(str(output_dir))
@@ -293,7 +297,8 @@ def main():
         
     total_frames1 = bpy.data.objects[MAIN_BVH_NAME].animation_data.action.frame_range.y
     total_frames2 = bpy.data.objects[INTR_BVH_NAME].animation_data.action.frame_range.y
-    ARG_DURATION_IN_FRAMES = math.floor(min([ARG_DURATION_IN_FRAMES, total_frames1, total_frames2]))      
+    ARG_DURATION_IN_FRAMES = math.floor(min([ARG_DURATION_IN_FRAMES, total_frames1, total_frames2])) 
+        
     dyad_fp, main_fp, intr_fp = render_video(str(output_dir), ARG_IMAGE, ARG_VIDEO, output_name, OBJ1_friendly_name, OBJ2_friendly_name, ARG_START_FRAME, ARG_DURATION_IN_FRAMES, ARG_RESOLUTION_X, ARG_RESOLUTION_Y)
     
     audio1.use_mono = True

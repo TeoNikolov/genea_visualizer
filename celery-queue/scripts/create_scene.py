@@ -12,7 +12,7 @@ else:
 import create_camera
 importlib.reload(create_camera)
 
-def setup_scene(cam_pos, cam_rot, actor1, actor2, arm1, arm2, plane_size=5):
+def setup_scene(cam_pos, cam_rot, actor1, actor2, arm1, arm2, plane_size=5, InLocation):
     
     # Camera Main
     name = 'Main'
@@ -37,6 +37,10 @@ def setup_scene(cam_pos, cam_rot, actor1, actor2, arm1, arm2, plane_size=5):
     create_camera.add_camera(cam_pos, cam_rot, actor1.name)
     
     add_plane(plane_size)
+    
+    light_type = 'SUN'
+    add_light(light_type, 1, InLocation)
+#    raise KeyboardInterrupt
 
     # Sky Sphere
     bpy.ops.mesh.primitive_uv_sphere_add(segments=256, ring_count=256, radius=75)
@@ -67,3 +71,9 @@ def add_speechbubble(y):
     mat.diffuse_color = (0.115, 0.25, 0.3, 1)
     bub_obj.data.materials.append(mat) #add the material to the object
     return bub_obj
+
+def add_light(type, radius, InLocation = (0, 0, 0)):
+    bpy.ops.object.light_add(type='SUN', radius=1)
+    print('sun added')
+    sun_obj = bpy.data.objects['Sun']
+    sun_obj.location(InLocation)

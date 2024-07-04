@@ -27,7 +27,6 @@ def load_fbx(filepath, name):
         force_connect_children=True, 
         automatic_bone_orientation=False
     )
-    print('test')
     edit_character.remove_bone(
         bpy.data.objects['Armature'], 
         'b_r_foot_End'
@@ -38,7 +37,7 @@ def load_bvh(filepath):
     bpy.ops.import_anim.bvh(
         filepath=filepath, 
         use_fps_scale=False,
-        update_scene_fps=True, 
+        update_scene_fps=False, 
         update_scene_duration=True, 
         global_scale=0.01
     )

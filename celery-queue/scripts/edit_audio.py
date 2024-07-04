@@ -9,7 +9,7 @@ def read_audio_strided(audio, stride, start, stop):
     stop     = math.floor(stop * rate)     # samples
     start    = math.floor(start * rate)    # samples
     stride   = math.floor(stride * rate)   # samples
-    if start > audio.getnframes(): start = audio.getnframes() - 1
+    if start > audio.getnframes() - 1: start = audio.getnframes() - 1
     if stop  > audio.getnframes(): stop  = audio.getnframes()
     duration = stop - start # samples
 
