@@ -11,6 +11,8 @@ from pathlib import Path as myPath
 import wave
 import numpy as np
 import importlib
+import csv
+import re
 
 if bpy.ops.text.run_script.poll():
     script_dir = myPath(bpy.context.space_data.text.filepath).parents[0]
@@ -57,8 +59,21 @@ def clear_scene():
 def create_sequencer():
     bpy.context.scene.sequence_editor_create()
     
+def set_SMPLX_name(filename):
+    SMPLX_FILENAME = filename
+    
+def get_SMPLX_name():
+    return SMPLX_FILENAME
+    
+def set_Output_dir(InOutputDir):
+    ARG_OUTPUT_DIR = InOutputDir
+    
+def get_Output_dir():
+    return ARG_OUTPUT_DIR
+    
 def render_video(output_dir, picture, video, filename_token, actor1, actor2, render_frame_start, render_frame_length, res_x, res_y):
-#    bpy.context.scene.render.engine = 'BLENDER_WORKBENCH'
+    bpy.context.scene.render.engine = 'CYCLES'
+    bpy.context.scene.cycles.device = 'GPU'
 #    bpy.context.scene.display.shading.light = 'MATCAP'
 #    bpy.context.scene.display.render_aa = 'FXAA'
     bpy.context.scene.render.resolution_x=int(res_x)
@@ -66,8 +81,13 @@ def render_video(output_dir, picture, video, filename_token, actor1, actor2, ren
     bpy.context.scene.render.fps = 30
     bpy.context.scene.frame_start = render_frame_start
     bpy.context.scene.frame_set(render_frame_start)
+    bpy.context.scene.display.shading.show_specular_highlight = False
     if render_frame_length > 0:
         bpy.context.scene.frame_end = render_frame_start + render_frame_length
+    
+    main_filepath = os.path.join(output_dir, '{}_main-agent'.format(filename_token))
+    # intr_filepath = os.path.join(output_dir, '{}_interloctr.mp4'.format(filename_token))
+    # dyad_filepath = os.path.join(output_dir, '{}_dyadic.mp4'.format(filename_token))
     
     if picture:
         bpy.context.scene.render.image_settings.file_format='PNG'
@@ -76,10 +96,12 @@ def render_video(output_dir, picture, video, filename_token, actor1, actor2, ren
         # bpy.data.objects[actor2].children[1].hide_render = False
         # bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_dyadic_.png'.format(filename_token))
         # bpy.ops.render.render(write_still=True)
-        create_camera.get_camera(actor1 + '_cam')
-        bpy.data.objects[actor1].children[1].hide_render = True
-        bpy.data.objects[actor2].children[1].hide_render = False
-        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_main-agent_.png'.format(filename_token))
+        create_camera.get_camera('Main_cam')
+#        create_camera.get_camera(actor1 + '_cam')
+#        bpy.data.objects[actor1].children[1].hide_render = True
+#        bpy.data.objects[actor2].children[1].hide_render = False
+        bpy.context.scene.render.filepath = main_filepath
+#        bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_main-agent_.png'.format(filename_token))
         bpy.ops.render.render(write_still=True)
         # create_camera.get_camera(actor2 + '_cam')
         # bpy.data.objects[actor1].children[1].hide_render = False
@@ -87,11 +109,8 @@ def render_video(output_dir, picture, video, filename_token, actor1, actor2, ren
         # bpy.context.scene.render.filepath=os.path.join(output_dir, '{}_interloctr_.png'.format(filename_token))
         # bpy.ops.render.render(write_still=True)
     
-    main_filepath = os.path.join(output_dir, '{}_main-agent.mp4'.format(filename_token))
-    # intr_filepath = os.path.join(output_dir, '{}_interloctr.mp4'.format(filename_token))
-    # dyad_filepath = os.path.join(output_dir, '{}_dyadic.mp4'.format(filename_token))
-    
     if video:
+        bpy.context.scene.render.image_settings.file_format='MP4'
         print(f"total_frames {render_frame_length}", flush=True)
         bpy.context.scene.render.image_settings.file_format='FFMPEG'
         bpy.context.scene.render.ffmpeg.format='MPEG4'
@@ -100,9 +119,11 @@ def render_video(output_dir, picture, video, filename_token, actor1, actor2, ren
         bpy.context.scene.render.ffmpeg.constant_rate_factor='HIGH'
         bpy.context.scene.render.ffmpeg.audio_codec='MP3'
         bpy.context.scene.render.ffmpeg.gopsize = 30
-        create_camera.get_camera(actor1 + '_cam')
-        bpy.data.objects[actor1].children[1].hide_render = False
-        bpy.data.objects[actor2].children[1].hide_render = True
+        bpy.context.scene.display.shading.color_type = 'TEXTURE'
+        create_camera.get_camera('Main_cam')
+#        create_camera.get_camera(actor1 + '_cam')
+#        bpy.data.objects[actor1].children[1].hide_render = False
+#        bpy.data.objects[actor2].children[1].hide_render = True
         bpy.context.scene.render.filepath = main_filepath
         bpy.ops.render.render(animation=True, write_still=True)
         # create_camera.get_camera(actor2 + '_cam')
@@ -158,18 +179,26 @@ def main():
         ARG_INTR_BVH_FILE = 'S:/Work/GENEA2022/genea2023_dataset_tst/tst/interloctr/bvh/tst_2023_v0_024_interloctr.bvh'
         ARG_MAIN_AUDIO_FILE = 'S:/Work/GENEA2022/genea2023_dataset_tst/tst/main-agent/wav_norm/tst_2023_v0_024_main-agent.wav' # set to None for no audio
         ARG_INTR_AUDIO_FILE = 'S:/Work/GENEA2022/genea2023_dataset_tst/tst/interloctr/wav_norm/tst_2023_v0_024_interloctr.wav' # set to None for no audio
-        ARG_IMAGE = False
-        ARG_VIDEO = True
-        ARG_START_FRAME = 0
-        ARG_DURATION_IN_FRAMES = 300
+        ARG_IMAGE = True
+        ARG_VIDEO = False
+        ARG_START_FRAME = 322
+        ARG_DURATION_IN_FRAMES = 400
         ARG_ROTATE = 'default'
+        ARG_RESOLUTION_X = 3840
+        ARG_RESOLUTION_Y = 2160
         ARG_RESOLUTION_X = 1280
         ARG_RESOLUTION_Y = 720
         ARG_MODE = 'full_body'
-        ARG_BUBBLE = True
+        ARG_BUBBLE = False
         # might need to adjust output directory
-        ARG_OUTPUT_DIR = SCRIPT_DIR / 'output/benchmarkUI'
-        ARG_OUTPUT_NAME = "blender_output"
+        ARG_OUTPUT_DIR = SCRIPT_DIR / 'output/Leaderboard/SMPLX/Updated'
+        ARG_OUTPUT_NAME = "blender_output_1"
+        
+        ARG_PLANESIZE = 10
+        ARG_LIGHTLOCATION = [0, 5, 15]
+        ARG_LIGHTTYPE = 'POINT'
+        ARG_LIGHTRADIUS = 2
+        ARG_LIGHTPOSITION = [0, 4, 3]
         print('ARG_OUTPUT_DIR: ', ARG_OUTPUT_DIR)
     else:
         print('[INFO] Script is running from command line.')
@@ -210,19 +239,48 @@ def main():
     
     clear_scene()
     
-    OBJ1_friendly_name = 'OBJ1'
-    load_data.load_fbx(FBX_MODEL, OBJ1_friendly_name)
-    create_material.add_materials(SCRIPT_DIR, OBJ1_friendly_name)
-    load_data.load_bvh(str(ARG_MAIN_BVH_FILE))
-    edit_character.constraintBoneTargets(armature = OBJ1_friendly_name, rig = MAIN_BVH_NAME, mode = ARG_MODE)
+    SMPLX_FILENAME_IN = get_SMPLX_name()
+    SMPLX_FILENAME_IN = "1_wayne_0_73_73"
     
-    OBJ2_friendly_name = 'OBJ2'
-    load_data.load_fbx(FBX_MODEL, OBJ2_friendly_name)
-    create_material.add_materials(SCRIPT_DIR, OBJ2_friendly_name)
-    load_data.load_bvh(str(ARG_INTR_BVH_FILE))
-    edit_character.constraintBoneTargets(armature = OBJ2_friendly_name, rig = INTR_BVH_NAME, mode = ARG_MODE)
+    bpy.ops.object.select_all(action='DESELECT')
+    SMPLX_LOCATION = 'S:/Work/GENEA/GENEA2024/beat_v2.0.0/beat_english_v2.0.0/smplxflame_30/'
+    SMPLX_TAKE = SMPLX_LOCATION + SMPLX_FILENAME_IN + '.npz'
+    bpy.ops.object.smplx_add_animation(filepath=SMPLX_TAKE)
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.data.window_managers['WinMan'].smplx_tool.smplx_texture = 'smplx_texture_m_alb.png'
+    bpy.ops.object.smplx_set_texture()
+    smplx_char = bpy.data.objects[1]
+#    smplx_char.rotation_euler[0] = 1.5708 # prevent character from laying
+#    smplx_char.rotation_euler[2] = 3.14159 # adjust to camera orientation
+#    smplx_char.location[0] = -0.35 # center character
+#    smplx_char.location[1] = -0.75 # move character away from camera
     
-    edit_character.setup_characters(MAIN_BVH_NAME, INTR_BVH_NAME)
+    root_bone = smplx_char.pose.bones['root']
+    pelvis_bone = smplx_char.pose.bones['pelvis']
+    
+    ARG_DURATION_IN_FRAMES = smplx_char.animation_data.action.frame_range.y
+    output_name = smplx_char.name
+    
+    MAIN_BVH_NAME = smplx_char
+    ARG_INTR_BVH_FILE = smplx_char
+    
+    AUDIO_LOCATION = 'S:/Work/GENEA/GENEA2024/beat_v2.0.0/beat_english_v2.0.0/wave16k/'
+    ARG_MAIN_AUDIO_FILE = AUDIO_LOCATION + SMPLX_FILENAME_IN + '.wav' # set to None for no audio
+#    ARG_INTR_AUDIO_FILE = AUDIO_LOCATION + '10_kieks_0_3_3.wav' # set to None for no audio
+
+#    OBJ1_friendly_name = 'OBJ1'
+#    load_data.load_fbx(FBX_MODEL, OBJ1_friendly_name)
+#    create_material.add_materials(SCRIPT_DIR, OBJ1_friendly_name)
+#    load_data.load_bvh(str(ARG_MAIN_BVH_FILE))
+#    edit_character.constraintBoneTargets(armature = OBJ1_friendly_name, rig = MAIN_BVH_NAME, mode = ARG_MODE)
+#    
+#    OBJ2_friendly_name = 'OBJ2'
+#    load_data.load_fbx(FBX_MODEL, OBJ2_friendly_name)
+#    create_material.add_materials(SCRIPT_DIR, OBJ2_friendly_name)
+#    load_data.load_bvh(str(ARG_INTR_BVH_FILE))
+#    edit_character.constraintBoneTargets(armature = OBJ2_friendly_name, rig = INTR_BVH_NAME, mode = ARG_MODE)
+#    
+#    edit_character.setup_characters(MAIN_BVH_NAME, INTR_BVH_NAME)
     
     create_sequencer()
     # for sanity, audio is handled using FFMPEG on the server and the input_audio argument should be ignored
@@ -253,7 +311,10 @@ def main():
         os.mkdir(str(output_dir))
     
     framerate = bpy.context.scene.render.fps
-    audio_proc1 = wave.open(os.path.abspath(ARG_MAIN_AUDIO_FILE), 'rb')
+    try:
+        audio_proc1 = wave.open(os.path.abspath(ARG_MAIN_AUDIO_FILE), 'rb')
+    except:
+        return
     audio_samples1 = edit_audio.get_volume_strided(audio_proc1, 1 / framerate, -1, -1)
     audio_samples1 = [abs(x) / 32768 for x in audio_samples1] # normalize scale between 0 and 1
     audio_samples1 = [x / max(audio_samples1) for x in audio_samples1] # normalize data between 0 and 1
@@ -293,30 +354,60 @@ def main():
     if ARG_MODE == "full_body":     CAM_POS = [3.25, 0, 1.8]
     elif ARG_MODE == "upper_body":  CAM_POS = [0, -2.45, 1.3]
     MAIN_CAM_ROT = [math.radians(80), 0, math.radians(90)]
+    MAIN_CAM_ROT = [0, 0, 0]
+    print(CAM_POS)
+    print(pelvis_bone.location)
+#    MAIN_CAM_ROT = Vector((pelvis_bone.location[0], pelvis_bone.location[1], pelvis_bone.location[2])) + Vector((0, 0, 0.3)) + Vector((0, -smplx_char.location[1], 0))
+    CAM_POS = Vector((pelvis_bone.location[0], pelvis_bone.location[1], pelvis_bone.location[2])) + Vector((0, -0.15, 3))
+    print(CAM_POS)
+    
+#    create_scene.setup_scene(
+#        CAM_POS, 
+#        MAIN_CAM_ROT, 
+#        bpy.data.objects[OBJ1_friendly_name], 
+#        bpy.data.objects[OBJ2_friendly_name], 
+#        MAIN_BVH_NAME, 
+#        INTR_BVH_NAME,
+#        ARG_PLANESIZE,
+#        ARG_LIGHTLOCATION)
     
     create_scene.setup_scene(
         CAM_POS, 
         MAIN_CAM_ROT, 
-        bpy.data.objects[OBJ1_friendly_name], 
-        bpy.data.objects[OBJ2_friendly_name], 
+        smplx_char, 
+        smplx_char, 
         MAIN_BVH_NAME, 
-        INTR_BVH_NAME)
+        INTR_BVH_NAME,
+        ARG_PLANESIZE,
+        ARG_LIGHTLOCATION)
         
     create_scene.add_light(ARG_LIGHTTYPE, ARG_LIGHTRADIUS, ARG_LIGHTPOSITION)
         
-    setup_camera()
+#    setup_camera()
         
-    total_frames1 = bpy.data.objects[MAIN_BVH_NAME].animation_data.action.frame_range.y
-    total_frames2 = bpy.data.objects[INTR_BVH_NAME].animation_data.action.frame_range.y
-    ARG_DURATION_IN_FRAMES = math.floor(min([ARG_DURATION_IN_FRAMES, total_frames1, total_frames2])) 
+    total_frames1 = smplx_char.animation_data.action.frame_range.y
+    total_frames2 = smplx_char.animation_data.action.frame_range.y
+    ARG_DURATION_IN_FRAMES = math.floor(min([ARG_DURATION_IN_FRAMES, total_frames1, total_frames2]))
+        
+#    main_fp = render_video(
+#        str(output_dir), 
+#        ARG_IMAGE, 
+#        ARG_VIDEO, 
+#        output_name, 
+#        OBJ1_friendly_name, 
+#        OBJ2_friendly_name, 
+#        ARG_START_FRAME, 
+#        ARG_DURATION_IN_FRAMES, 
+#        ARG_RESOLUTION_X, 
+#        ARG_RESOLUTION_Y)
         
     main_fp = render_video(
         str(output_dir), 
         ARG_IMAGE, 
         ARG_VIDEO, 
         output_name, 
-        OBJ1_friendly_name, 
-        OBJ2_friendly_name, 
+        smplx_char.name, 
+        smplx_char.name, 
         ARG_START_FRAME, 
         ARG_DURATION_IN_FRAMES, 
         ARG_RESOLUTION_X, 
@@ -396,5 +487,72 @@ def main():
     print("output_file", str(list(output_dir.glob("*"))[0]), flush=True)
     print(all_time)
 
+
 #Code line
+#SMPLX_FILENAME = '28_tiffnay_0_2_2'
+#main()
+
+def extract_segment(file_name):
+    try:
+        # Remove the file extension
+        base_name = file_name.rsplit('.', 1)[0]
+#        print(base_name)
+        # Split by underscores
+        parts = base_name.split('_')
+#        print(parts)
+        # Extract the required segment
+        result = '_'.join(parts[2:7])  # Indices 1 to 5 (inclusive)
+        return result
+    except IndexError:
+        print("Error: The filename format doesn't match the expected convention.")
+        return None
+
+def filter_csv_by_type(file_path, match_type="test"):
+    try:
+        with open(file_path, 'r', newline='', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
+            result = [row['id'] for row in reader if row['type'] == match_type]
+        return result
+    except Exception as e:
+        print(f"Error: {e}")
+        return []
+
+SCRIPT_DIR = myPath(bpy.context.space_data.text.filepath).parents[0]
+file_path = 'S://Work//GENEA//GENEA2024//beat_v2.0.0//beat_english_v2.0.0//train_test_split.csv'
+ARG_OUTPUT_DIR = SCRIPT_DIR / 'output/Leaderboard/SMPLX/Updated'
+
+# Call the function and print the results
+matches = filter_csv_by_type(file_path)
+#print("Matches from the 1st column where 'type' is 'test':")
+#print(matches)
+
+for File in matches:
+    SMPLX_FILENAME = File
+    print(File)
+#    set_SMPLX_name(File)
+#    print(get_SMPLX_name())
+    
+    for Output_File in list(ARG_OUTPUT_DIR.glob("*")):
+#       print(Output_File)
+        segment = extract_segment(str(Output_File))
+        if segment in File:
+#           print("Extracted segment:", segment)
+            print(Output_File.stem)
+#            main()
+    
+#print(len(str(list(ARG_OUTPUT_DIR.glob("*"))[0])))
+#print(str(list(ARG_OUTPUT_DIR.glob("*"))))
+#output_directory = str(list(ARG_OUTPUT_DIR.glob("*")))
+
+# Call the function and print results
+#segments = extract_segments(output_directory)
+#print("Extracted segments:", segments)
+
+#for Output_File in list(ARG_OUTPUT_DIR.glob("*")):
+##    print(Output_File)
+#    segment = extract_segment(str(Output_File))
+#    if segment not in matches:
+##        print("Extracted segment:", segment)
+#        print(Output_File.stem)
+    
 main()
