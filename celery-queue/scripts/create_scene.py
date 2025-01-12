@@ -13,42 +13,19 @@ import create_camera
 importlib.reload(create_camera)
 
 def setup_scene(
-    cam_pos, 
-    cam_rot, 
-    actor1, 
-    actor2, 
-    arm1, 
-    arm2, 
-    plane_size, 
+    cam_pos,
+    cam_rot,
+    plane_size,
     InLocation):
     
     # Camera Main
     name = 'Main'
     create_camera.add_camera(cam_pos, cam_rot, name)
     
-    # Camera actor 1
-    actor1c = actor1.children[0]
-    actor1c.name = 'actor1_loc'
-#    arm1 = bpy.data.objects[arm1]
-    
-    # Camera actor 2
-    actor2c = actor2.children[0]
-    actor2c.name = 'actor2_loc'
-#    arm2 = bpy.data.objects[arm2]
-    
-##    cam_pos = [0, 0.75, 1.5]
-#    cam_rot = [math.radians(80), 0, math.radians(180)]
-#    create_camera.add_camera(cam_pos, cam_rot, actor2.name)
-#    
-##    cam_pos = [0, -0.75, 1.5]
-#    cam_rot = [math.radians(80), 0, 0]
-#    create_camera.add_camera(cam_pos, cam_rot, actor1.name)
-    
     add_plane(plane_size)
     
     light_type = 'AREA'
     add_light(InType=light_type, InRadius=5, InLightLocation=InLocation)
-#    raise KeyboardInterrupt
 
     # Sky Sphere
     bpy.ops.mesh.primitive_uv_sphere_add(segments=256, ring_count=256, radius=75)

@@ -1,6 +1,22 @@
 import bpy
 import math
+import wave
+import os
 import numpy as np
+
+def load_and_fix_audio(audio, framerate):
+    try:
+        audio_proc1 = wave.open(os.path.abspath(audio), 'rb')
+    except:
+        return
+    
+    audio_samples1 = get_volume_strided(audio_proc1, 1 / framerate, -1, -1)
+    audio_samples1 = [abs(x) / 32768 for x in audio_samples1] # normalize scale between 0 and 1
+    audio_samples1 = [x / max(audio_samples1) for x in audio_samples1] # normalize data between 0 and 1
+    audio_samples1 = [0 if x < 0.2 else 1 for x in audio_samples1]
+    audio_samples1 = smooth_kernel(audio_samples1, 10)
+    audio_samples1 = [max(0.0075, x * 0.05) for x in audio_samples1] # scale down and clamp to min
+    return audio_samples1
 
 def read_audio_strided(audio, stride, start, stop):
     rate = audio.getframerate()
