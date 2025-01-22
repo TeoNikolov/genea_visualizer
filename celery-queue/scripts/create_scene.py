@@ -3,6 +3,7 @@ import math
 import os
 from pathlib import Path as myPath
 import importlib
+import random
 
 if bpy.ops.text.run_script.poll():
     script_dir = myPath(bpy.context.space_data.text.filepath).parents[0]
@@ -48,6 +49,12 @@ def setup_scene(
 def add_plane(prov_size):
     bpy.ops.mesh.primitive_plane_add(size=prov_size, location=[0, 0, 0])
     plane_obj = bpy.data.objects['Plane']
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.subdivide(number_cuts=10)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    
+    mesh = plane_obj.data
+    
     plane_obj.name = 'Floor'
     plane_obj.scale[0] = 2.3
     plane_obj.scale[1] = 2.175
@@ -56,15 +63,65 @@ def add_plane(prov_size):
     mat = bpy.data.materials.new(name="FloorColor") #create new material and variable
     mat.use_nodes = True
     bsdf = mat.node_tree.nodes["Principled BSDF"]
+    matOutput = mat.node_tree.nodes["Material Output"]
     
-    texImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
-    texture_dir = script_dir/"textures"/"grass-texture-background.jpg"
-    texImage.image = bpy.data.images.load(str(texture_dir))
-    mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
+    # texImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
+    # texture_dir = script_dir/"textures"/"grass-texture-background.jpg"
+    # texImage.image = bpy.data.images.load(str(texture_dir))
+    # mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
+    
+    # Mapping nodes
+    texCoord = mat.node_tree.nodes.new('ShaderNodeTexCoord')
+    texMapping = mat.node_tree.nodes.new('ShaderNodeMapping')
+    # texMapping.inputs[3].default_value[0] = 4
+    # texMapping.inputs[3].default_value[1] = 6
+    mat.node_tree.links.new(texCoord.outputs['UV'], texMapping.inputs['Vector'])
+    
+    # Texture nodes
+    texColorImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
+    texture2_dir =  script_dir/"textures"/"wood_floor"/"wood_floor_deck_diff_4k.jpg"
+    texColorImage.image = bpy.data.images.load(str(texture2_dir))
+    mat.node_tree.links.new(texMapping.outputs['Vector'], texColorImage.inputs['Vector'])
+    
+    texRoughImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
+    texture3_dir = script_dir/"textures"/"wood_floor"/"wood_floor_deck_rough_4k.exr"
+    texRoughImage.image = bpy.data.images.load(str(texture3_dir))
+    mat.node_tree.links.new(texMapping.outputs['Vector'], texRoughImage.inputs['Vector'])
+    
+    texNormalMapImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
+    texture4_dir = script_dir/"textures"/"wood_floor"/"wood_floor_deck_nor_gl_4k.exr"
+    texNormalMapImage.image = bpy.data.images.load(str(texture4_dir))
+    mat.node_tree.links.new(texMapping.outputs['Vector'], texNormalMapImage.inputs['Vector'])
+    
+    texDispImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
+    texture5_dir = script_dir/"textures"/"wood_floor"/"wood_floor_deck_disp_4k.png"
+    texDispImage.image = bpy.data.images.load(str(texture5_dir))
+    mat.node_tree.links.new(texMapping.outputs['Vector'], texDispImage.inputs['Vector'])
+    
+    # Normal Map and Displacement nodes
+    normalMap = mat.node_tree.nodes.new('ShaderNodeNormalMap')
+    mat.node_tree.links.new(texNormalMapImage.outputs['Color'], normalMap.inputs['Color'])
+    
+    dispalcement = mat.node_tree.nodes.new('ShaderNodeDisplacement')
+    mat.node_tree.links.new(texDispImage.outputs['Color'], dispalcement.inputs['Height'])
+    
+    # Connections
+    mat.node_tree.links.new(bsdf.inputs['Base Color'], texColorImage.outputs['Color'])
+    mat.node_tree.links.new(bsdf.inputs['Roughness'], texRoughImage.outputs['Color'])
+    
+    mat.node_tree.links.new(normalMap.outputs['Normal'], bsdf.inputs['Normal'])
+    
+    mat.node_tree.links.new(dispalcement.outputs['Displacement'], matOutput.inputs['Displacement'])
+    
+    # Add offset
+    uv_layer = mesh.uv_layers.active.data
+    row_offset = 0.2  # Adjust the amount of offset
+    for i, loop in enumerate(uv_layer):
+        uv = loop.uv
+        if int(uv[1] * 10) % 2 == 0:  # Apply offset to alternate rows
+            uv[0] += row_offset
     
     plane_obj.data.materials.append(mat) #add the material to the object
-    
-    
     
 def add_speechbubble(y):
     bpy.ops.mesh.primitive_uv_sphere_add()
