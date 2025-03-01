@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<materialx version="1.38" fileprefix="./">
+  <standard_surface type="surfaceshader" ypos="-1.879310" name="WoodFloor036_2K_JPG_StandardSurface" xpos="6.159420">
+    <input type="float" name="specular" value="0" />
+    <input type="float" name="coat" value="1" />
+    <input type="color3" name="coat_color" value="1, 1, 1" />
+    <input type="float" name="base" value="1" />
+    <input type="color3" name="base_color" nodename="WoodFloor036_2K_JPG_Color" />
+    <input type="vector3" name="normal" nodename="normalmap" />
+    <input type="vector3" name="coat_normal" nodename="normalmap" />
+    <input type="float" name="specular_roughness" nodename="WoodFloor036_2K_JPG_Roughness" />
+    <input type="float" name="coat_roughness" nodename="WoodFloor036_2K_JPG_Roughness" />
+  </standard_surface>
+  <surfacematerial type="material" ypos="0.000000" name="WoodFloor036_2K_JPG" xpos="8.695652">
+    <input type="surfaceshader" name="surfaceshader" nodename="WoodFloor036_2K_JPG_StandardSurface" />
+    <input type="displacementshader" name="displacementshader" nodename="displacement" />
+  </surfacematerial>
+  <tiledimage type="color3" ypos="-3.103448" name="WoodFloor036_2K_JPG_Color" xpos="3.623188">
+    <input type="filename" name="file" value="WoodFloor036_2K-JPG_Color.jpg" colorspace="srgb_texture" />
+    <input type="vector2" name="uvtiling" value="1.0, 1.0" />
+  </tiledimage>
+  <tiledimage type="float" ypos="5.163793" name="WoodFloor036_2K_JPG_Displacement" xpos="3.623188">
+    <input type="filename" name="file" value="WoodFloor036_2K-JPG_Displacement.jpg" />
+    <input type="vector2" name="uvtiling" value="1.0, 1.0" />
+  </tiledimage>
+  <displacement type="displacementshader" ypos="1.879310" name="displacement" xpos="6.159420">
+    <input type="float" name="displacement" nodename="WoodFloor036_2K_JPG_Displacement" />
+    <input type="float" name="scale" value="1.0" />
+  </displacement>
+  <tiledimage type="vector3" ypos="0.879310" name="WoodFloor036_2K_JPG_NormalGL" xpos="1.086957">
+    <input type="filename" name="file" value="WoodFloor036_2K-JPG_NormalGL.jpg" />
+    <input type="vector2" name="uvtiling" value="1.0, 1.0" />
+  </tiledimage>
+  <normalmap type="vector3" ypos="3.586207" name="normalmap" xpos="3.623188">
+    <input type="vector3" name="in" nodename="WoodFloor036_2K_JPG_NormalGL" />
+    <input type="float" name="scale" value="1.0" />
+  </normalmap>
+  <tiledimage type="float" ypos="-0.413793" name="WoodFloor036_2K_JPG_Roughness" xpos="3.623188">
+    <input type="filename" name="file" value="WoodFloor036_2K-JPG_Roughness.jpg" />
+    <input type="vector2" name="uvtiling" value="1.0, 1.0" />
+  </tiledimage>
+</materialx>

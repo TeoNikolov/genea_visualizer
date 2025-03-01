@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<materialx version="1.38" fileprefix="./">
+  <standard_surface type="surfaceshader" xpos="6.159420" name="Plaster001_2K_JPG_StandardSurface" ypos="-1.879310">
+    <input value="0" type="float" name="specular" />
+    <input value="1" type="float" name="coat" />
+    <input value="1, 1, 1" type="color3" name="coat_color" />
+    <input value="1" type="float" name="base" />
+    <input nodename="Plaster001_2K_JPG_Color" type="color3" name="base_color" />
+    <input nodename="normalmap" type="vector3" name="normal" />
+    <input nodename="normalmap" type="vector3" name="coat_normal" />
+    <input nodename="Plaster001_2K_JPG_Roughness" type="float" name="specular_roughness" />
+    <input nodename="Plaster001_2K_JPG_Roughness" type="float" name="coat_roughness" />
+  </standard_surface>
+  <surfacematerial type="material" xpos="8.695652" name="Plaster001_2K_JPG" ypos="0.000000">
+    <input nodename="Plaster001_2K_JPG_StandardSurface" type="surfaceshader" name="surfaceshader" />
+    <input nodename="displacement" type="displacementshader" name="displacementshader" />
+  </surfacematerial>
+  <tiledimage type="color3" xpos="3.623188" name="Plaster001_2K_JPG_Color" ypos="-3.103448">
+    <input value="Plaster001_2K-JPG_Color.jpg" type="filename" name="file" colorspace="srgb_texture" />
+    <input value="1.0, 1.0" type="vector2" name="uvtiling" />
+  </tiledimage>
+  <tiledimage type="float" xpos="3.623188" name="Plaster001_2K_JPG_Displacement" ypos="5.163793">
+    <input value="Plaster001_2K-JPG_Displacement.jpg" type="filename" name="file" />
+    <input value="1.0, 1.0" type="vector2" name="uvtiling" />
+  </tiledimage>
+  <displacement type="displacementshader" xpos="6.159420" name="displacement" ypos="1.879310">
+    <input nodename="Plaster001_2K_JPG_Displacement" type="float" name="displacement" />
+    <input value="1.0" type="float" name="scale" />
+  </displacement>
+  <tiledimage type="vector3" xpos="1.086957" name="Plaster001_2K_JPG_NormalGL" ypos="0.879310">
+    <input value="Plaster001_2K-JPG_NormalGL.jpg" type="filename" name="file" />
+    <input value="1.0, 1.0" type="vector2" name="uvtiling" />
+  </tiledimage>
+  <normalmap type="vector3" xpos="3.623188" name="normalmap" ypos="3.586207">
+    <input nodename="Plaster001_2K_JPG_NormalGL" type="vector3" name="in" />
+    <input value="1.0" type="float" name="scale" />
+  </normalmap>
+  <tiledimage type="float" xpos="3.623188" name="Plaster001_2K_JPG_Roughness" ypos="-0.413793">
+    <input value="Plaster001_2K-JPG_Roughness.jpg" type="filename" name="file" />
+    <input value="1.0, 1.0" type="vector2" name="uvtiling" />
+  </tiledimage>
+</materialx>

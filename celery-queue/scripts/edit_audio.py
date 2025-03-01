@@ -45,7 +45,7 @@ def get_volume(audio, time):
     time_range = 0.01 # 220 samples (110 before, 110 after)
     stride = 0.001 # 22 samples
     samples = read_audio_strided(audio, stride, time - time_range, time + time_range)
-    samples = [abs(x) for x in samples] # absolute
+    samples = np.abs(samples) # absolute
     volume = max(samples)
     return volume
 

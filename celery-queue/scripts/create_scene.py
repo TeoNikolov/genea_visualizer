@@ -23,28 +23,28 @@ def setup_scene(
     name = 'Main'
     create_camera.add_camera(cam_pos, cam_rot, name)
     
-    add_plane(plane_size)
+    # add_plane(plane_size)
     
-    light_type = 'AREA'
-    add_light(InType=light_type, InRadius=5, InLightLocation=InLocation)
+#    light_type = 'AREA'
+#    add_light(InType=light_type, InRadius=5, InLightLocation=InLocation)
 
     # Sky Sphere
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=256, ring_count=256, radius=75)
-    sky_obj = bpy.data.objects['Sphere']
-    sky_obj.name = 'Sky'
+    # bpy.ops.mesh.primitive_uv_sphere_add(segments=256, ring_count=256, radius=75)
+    # sky_obj = bpy.data.objects['Sphere']
+    # sky_obj.name = 'Sky'
     
-    sky_mat = bpy.data.materials.new(name="SkyBox")
-    sky_mat.use_nodes = True
-    bsdf = sky_mat.node_tree.nodes["Principled BSDF"]
+    # sky_mat = bpy.data.materials.new(name="SkyBox")
+    # sky_mat.use_nodes = True
+    # bsdf = sky_mat.node_tree.nodes["Principled BSDF"]
     
-    texImage = sky_mat.node_tree.nodes.new('ShaderNodeTexImage')
-    texture_dir = script_dir/"textures"/"beautiful-cloudy-sky.jpg"
-    texImage.image = bpy.data.images.load(str(texture_dir))
-    sky_mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
+    # texImage = sky_mat.node_tree.nodes.new('ShaderNodeTexImage')
+    # texture_dir = script_dir/"textures"/"beautiful-cloudy-sky.jpg"
+    # texImage.image = bpy.data.images.load(str(texture_dir))
+    # sky_mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
     
-    sky_obj.data.materials.append(sky_mat)
+    # sky_obj.data.materials.append(sky_mat)
     
-    sky_obj.rotation_euler[0] = 5.06145
+    # sky_obj.rotation_euler[0] = 5.06145
 
 def add_plane(prov_size):
     bpy.ops.mesh.primitive_plane_add(size=prov_size, location=[0, 0, 0])

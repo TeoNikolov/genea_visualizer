@@ -1,59 +1,48 @@
+# Copyright 2025, the GENEA Leaderboard organizing committee
+
+# This is an extension to the SMPL-X for Blender add-on developed by Meshcapade.
+# The license for this file is currently not included, so the license of the
+# original SMPL-X for Blender add-on applies. If this message continues to be
+# included in the official GENEA Leaderboard repository, please reach out to
+# remind us to correct this. Any suggestions on how to update the license are
+# welcome!
+
+bl_info = {
+    "name": "SMPL-X for Blender (GENEA Leaderboard Extension)",
+    "author": "Teodor Nikolov, on behalf of GENEA Leaderboard committee",
+    "version": (2025, 1, 1),
+    "blender": (3, 3, 1),
+    "location": "Viewport > Right panel",
+    "description": "SMPL-X for Blender (GENEA Leaderboard Extension)",
+    "wiki_url": "https://genea-workshop.github.io/leaderboard/",
+    "category": "SMPL-X"}
+
 import bpy
 import os
 
-def add_materials(work_dir, name):
-    mat = bpy.data.materials.new('gray')
-    mat.use_nodes = True
-    bsdf = mat.node_tree.nodes["Principled BSDF"]
-    texImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
-    texImage.image = bpy.data.images.load(os.path.join(work_dir, 'model', "LowP_03_Texture_ColAO_grey5.jpg"))
-    mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
-
-    obj = bpy.data.objects['LowP_01']
-    obj.modifiers['Armature'].use_deform_preserve_volume=True
-    # Assign it to object
-    if obj.data.materials:
-        obj.data.materials[0] = mat
-    else:
-        obj.data.materials.append(mat)
-    
-    # set new material to variable
-    mat = bpy.data.materials.new(name="FloorColor")
-    mat.diffuse_color = (0.15, 0.4, 0.25, 1)
-    
-def setup_subdivision_surface(char_mesh):    
-    # nodes = mat.node_tree.nodes
-    # links = mat.node_tree.links
-    
-    # bsdf_node = mat.node_tree.nodes["Principled BSDF"]
-    # material_output = mat.node_tree.nodes["Material Output"]
-    
-    # for node in nodes:
-    #     if node.type == 'TEX_IMAGE':
-    #         texture_diffuse = node
-    
+def setup_subdivision_surface():
     # Ensure there's an active object
-    # obj = bpy.context.active_object
-    # if not obj:
-    #     print("Please select an object.")
-    #     return
+    obj = bpy.context.active_object
+    if not obj:
+        print("Please select an object.")
+        return
 
     # Add a Subdivision Surface modifier
-    subdiv_modifier = char_mesh.modifiers.new(name="Subdivision Surface", type='SUBSURF')
+    subdiv_modifier = obj.modifiers.new(name="Subdivision Surface", type='SUBSURF')
 
     # Set Levels Viewport and Render values
     subdiv_modifier.levels = 3
     subdiv_modifier.render_levels = 3
 
-def setup_geometry_nodes(char_mesh):
+def setup_geometry_nodes():
     # Ensure there's an active object with a material
-    # obj = bpy.context.active_object
-    # if not obj:
-    #     print("Please select an object with a material.")
-    #     return
+    obj = bpy.context.active_object
+    if not obj:
+        print("Please select an object with a material.")
+        return
 
     # Add a new geometry node group modifier
-    mod = char_mesh.modifiers.new(name="Geo Norm Modifier", type='NODES')
+    mod = obj.modifiers.new(name="Geo Norm Modifier", type='NODES')
     
     # Access the node group
     node_group = bpy.data.node_groups.new(name="Geo Norm Group", type='GeometryNodeTree')
@@ -86,17 +75,19 @@ def setup_geometry_nodes(char_mesh):
     links.new(store_named_attribute.outputs['Geometry'], group_output.inputs['Geometry'])
 
 # Define the function to be executed when the button is clicked
-def setup_material_nodes(char_mesh, work_dir):
+def setup_material_nodes():
     # Ensure there's an active object with a material
-    # obj = bpy.context.active_object
-    # if not obj or not obj.active_material:
-    #     print("Please select an object with a material.")
-    #     return
+    obj = bpy.context.active_object
+    if not obj or not obj.active_material:
+        print("Please select an object with a material.")
+        return
 
-    mat = char_mesh.material_slots[0].material
+    mat = obj.active_material
+    if not mat.use_nodes:
+        mat.use_nodes = True
 
     # Set the displacement method to "Displacement and Bump"
-    char_mesh.active_material.displacement_method = 'BOTH'
+    obj.active_material.displacement_method = 'BOTH'
 
     # Get the existing nodes
     nodes = mat.node_tree.nodes
@@ -153,7 +144,9 @@ def setup_material_nodes(char_mesh, work_dir):
             return
 
         if texture_filename not in bpy.data.images:
-            texture_path = os.path.join(work_dir, "textures/SMPLX", texture_filename)
+            print(os.path.realpath(__file__))
+            addon_path = os.path.dirname(os.path.realpath(__file__))
+            texture_path = os.path.join(addon_path, "data", texture_filename)
             texture_displacement.image = bpy.data.images.load(texture_path)
         else:
             texture_displacement.image = bpy.data.images[texture_filename]
@@ -175,3 +168,41 @@ def setup_material_nodes(char_mesh, work_dir):
     links.new(value_node.outputs['Value'], divide_node.inputs[0])
     links.new(divide_node.outputs['Value'], scale_node.inputs['Scale'])
     links.new(scale_node.outputs['Vector'], material_output.inputs['Displacement'])
+
+def run():
+    setup_subdivision_surface()
+    setup_material_nodes()
+    setup_geometry_nodes()
+
+# Define the panel class that will create the button
+class RunScriptPanel(bpy.types.Panel):
+    bl_label = "GENEA"
+    bl_idname = "VIEW3D_PT_run_script"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'GENEA'
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator("wm.run_script_operator")
+
+# Define the operator that will be called when the button is pressed
+class RunScriptOperator(bpy.types.Operator):
+    bl_idname = "wm.run_script_operator"
+    bl_label = "Run Script"
+
+    def execute(self, context):
+        run()
+        return {'FINISHED'}
+
+# Register and unregister classes
+def register():
+    bpy.utils.register_class(RunScriptPanel)
+    bpy.utils.register_class(RunScriptOperator)
+
+def unregister():
+    bpy.utils.unregister_class(RunScriptPanel)
+    bpy.utils.unregister_class(RunScriptOperator)
+
+if __name__ == "__main__":
+    register()
