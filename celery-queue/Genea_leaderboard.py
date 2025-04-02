@@ -14,6 +14,7 @@ import importlib
 import csv
 import re
 import gc
+import tempfile
 
 class SequentialRenderOperator(bpy.types.Operator):
     bl_idname = "render.sequential_animations"
@@ -43,7 +44,7 @@ class SequentialRenderOperator(bpy.types.Operator):
                 
                 render_settings = self.render_queue.pop(0)
                 SMPLX_FILENAME_IN = render_settings["filepath"]
-                main(SMPLX_FILENAME_IN)
+                main() # Should have the take path as parameter for main(SMPLX_FILENAME_IN)
                 
                 # Start rendering
                 self.is_rendering = True
@@ -258,14 +259,20 @@ def setup_char_clothes(char):
     links.new(divide_node.outputs['Value'], scale_node.inputs['Scale'])
     links.new(scale_node.outputs['Vector'], material_output.inputs['Displacement'])
     
-def render_video(output_dir, picture, video, filename_token, render_frame_start, render_frame_length, res_x, res_y):
+def render_video(output_dir, framerate, picture, video, filename_token, render_frame_start, render_frame_length, res_x, res_y):
     scene = bpy.context.scene
     render = scene.render
     
     render.engine = 'CYCLES'
     render.resolution_x=int(res_x)
     render.resolution_y=int(res_y)
-    render.fps = 24
+    
+    render.fps = framerate
+    render.frame_map_new = 100
+    
+    if framerate == 24:
+        render.frame_map_new = 80
+    
     scene.frame_start = render_frame_start
     scene.frame_set(render_frame_start)
     
@@ -275,7 +282,7 @@ def render_video(output_dir, picture, video, filename_token, render_frame_start,
     if render.engine == 'CYCLES': #Defaults
         scene.cycles.device = 'GPU' #CPU
         render.compositor_device = 'GPU'
-        scene.cycles.samples = 1 #4096
+        scene.cycles.samples = 8 #4096
         scene.cycles.time_limit = 0 #0
         scene.cycles.adaptive_threshold = 0.025 #0.01
         scene.cycles.use_denoising = True
@@ -302,10 +309,10 @@ def render_video(output_dir, picture, video, filename_token, render_frame_start,
         # render.simplify_subdivision_render = 6 #6
         
         scene.cycles.use_auto_tile = True #True
-        # scene.cycles.tile_size = 256 #1024
+        # scene.cycles.tile_size = 1024 #1024
     
     if render_frame_length > 0:
-        scene.frame_end = render_frame_start + render_frame_length
+        scene.frame_end = render_frame_start + int(render_frame_length * (render.frame_map_new / 100))
     
     if picture:
         main_filepath = os.path.join(output_dir, '{}'.format(filename_token))
@@ -328,34 +335,47 @@ def render_video(output_dir, picture, video, filename_token, render_frame_start,
         scene.display.shading.color_type = 'TEXTURE'
         create_camera.get_camera('Main_cam')
         render.filepath = main_filepath
-        # if bpy.ops.text.run_script.poll():
-        #     bpy.ops.render.render('INVOKE_DEFAULT', animation=True)
-        # else:
-        #     bpy.ops.render.render(animation=True)
-        
-        bpy.ops.render.render('EXEC_DEFAULT', animation=True)
+        bpy.ops.render.render(animation=True)
     return main_filepath
+
+def modify_npz(filename: str) -> str:
+    # Load the .npz file
+    data = np.load(filename)
+    
+    # Create a dictionary with the modified data
+    new_data = {key: (np.zeros_like(data[key]) if key in ['expressions', 'trans'] else data[key]) for key in data}
+    
+    # Create a temporary file
+    temp_dir = tempfile.mkdtemp()
+    temp_path = f"{temp_dir}/modified.npz"
+    
+    # Save the modified data
+    np.savez(temp_path, **new_data)
+    
+    return temp_path
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Some description.", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-imb', '--input_main_bvh', help='Input filename of the main agent BVH motion file.', type=myPath, required=True)
-    parser.add_argument('-iib', '--input_intr_bvh', help='Input filename of the interlocutor BVH motion file', type=myPath, required=True)
+    parser.add_argument('-i', '--input_npz', help='Input filename of the NPZ file.', type=myPath, required=True)
+    parser.add_argument('-imb', '--input_main_bvh', help='Input filename of the main agent BVH motion file.', type=myPath)
+    parser.add_argument('-iib', '--input_intr_bvh', help='Input filename of the interlocutor BVH motion file', type=myPath)
     parser.add_argument('-imw', '--input_main_wav', help='Input filename of the main agent WAV audio file.', type=myPath)
     parser.add_argument('-iiw', '--input_intr_wav', help='Input filename of the interlocutor WAV audio file.', type=myPath)
     parser.add_argument('-o', '--output_dir', help='Output directory where the rendered video files will be saved to. Will use "<script directory/output/" if not specified.', type=myPath)
     parser.add_argument('-n', '--output_name', help='The name to use when outputting intermediate and final files. No periods \".\" or slashes \"/\" / \"\\\" allowed.', type=str, required=True)
     parser.add_argument('-s', '--start', help='Which frame to start rendering from.', type=int, default=0)
-    parser.add_argument('-d', '--duration', help='How many consecutive frames to render.', type=int, default=3600)
+    parser.add_argument('-d', '--duration', help='How many consecutive frames to render.', type=int, default=30)
     parser.add_argument('-p', '--png', action='store_true', help='Renders the result in a PNG-formatted image.')
     parser.add_argument('-v', '--video', action='store_true', help='Renders the result in an MP4-formatted video.')
     parser.add_argument('-m', "--visualization_mode", help='The visualization mode to use for rendering.',type=str, choices=['full_body', 'upper_body'], default='full_body')
-    parser.add_argument('-rx', '--res_x', help='The horizontal resolution for the rendered videos.', type=int, default=1280)
-    parser.add_argument('-ry', '--res_y', help='The vertical resolution for the rendered videos.', type=int, default=720)
+    parser.add_argument('-rx', '--res_x', help='The horizontal resolution for the rendered videos.', type=int, default=1440)
+    parser.add_argument('-ry', '--res_y', help='The vertical resolution for the rendered videos.', type=int, default=1080)
+    parser.add_argument('-f', '--framerate', help='The requested framerate.', type=int, default=30)
     argv = sys.argv
     argv = argv[argv.index("--") + 1 :]
     return vars(parser.parse_args(args=argv))
 
-def main(SMPLX_FILENAME_IN):
+def main(SMPLX_FILENAME_IN = ""):
     start = time.time()
     
     IS_SERVER = "GENEA_SERVER" in os.environ
@@ -369,18 +389,14 @@ def main(SMPLX_FILENAME_IN):
         ##### SET ARGUMENTS MANUALLY #####
         ##### IF RUNNING BLENDER GUI #####
         ##################################
-#        ARG_MAIN_BVH_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_main-agent.bvh'
-#        ARG_INTR_BVH_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_interloctr.bvh'
-#        ARG_MAIN_AUDIO_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_main-agent.wav' # set to None for no audio
-#        ARG_INTR_AUDIO_FILE = SCRIPT_DIR / 'test/' / 'val_2023_v0_000_interloctr.wav' # set to None for no audio
+        ARG_NPZ_FILE = None
+        ARG_FRAMERATE = 30
         ARG_MAIN_BVH_FILE = 'S:/Work/GENEA2022/genea2023_dataset_tst/tst/internal/main-agent/bvh/tst_2023_v0_024_main-agent.bvh'
-        ARG_INTR_BVH_FILE = 'S:/Work/GENEA2022/genea2023_dataset_tst/tst/interloctr/bvh/tst_2023_v0_024_interloctr.bvh'
         ARG_MAIN_AUDIO_FILE = 'S:/Work/GENEA2022/genea2023_dataset_tst/tst/main-agent/wav_norm/tst_2023_v0_024_main-agent.wav' # set to None for no audio
-        ARG_INTR_AUDIO_FILE = 'S:/Work/GENEA2022/genea2023_dataset_tst/tst/interloctr/wav_norm/tst_2023_v0_024_interloctr.wav' # set to None for no audio
         ARG_IMAGE = False
         ARG_VIDEO = True
         ARG_START_FRAME = 0
-        ARG_DURATION_IN_FRAMES = 300
+        ARG_DURATION_IN_FRAMES = 30
         ARG_RESOLUTION_X = 1440 #3840
         ARG_RESOLUTION_Y = 1080 #2160
         ARG_MODE = 'full_body'
@@ -394,10 +410,10 @@ def main(SMPLX_FILENAME_IN):
         print('[INFO] Script is running from command line.')
         SCRIPT_DIR = myPath(os.path.realpath(__file__)).parents[0]
         args = parse_args()
+        ARG_NPZ_FILE = args['input_npz']
+        ARG_FRAMERATE = args['framerate']
         ARG_MAIN_BVH_FILE = args['input_main_bvh']
-        ARG_INTR_BVH_FILE = args['input_intr_bvh']
         ARG_MAIN_AUDIO_FILE = args['input_main_wav'].resolve() if args['input_main_wav'] else None
-        ARG_INTR_AUDIO_FILE = args['input_intr_wav'].resolve() if args['input_intr_wav'] else None
         ARG_IMAGE = args['png']
         ARG_VIDEO = args['video']
         ARG_START_FRAME = args['start']
@@ -407,6 +423,9 @@ def main(SMPLX_FILENAME_IN):
         ARG_MODE = args['visualization_mode']
         ARG_OUTPUT_DIR = args['output_dir'].resolve() if args['output_dir'] else SCRIPT_DIR / 'output/'
         ARG_OUTPUT_NAME = args['output_name']
+        
+        ARG_PLANESIZE = 10
+        ARG_LIGHTLOCATION = [0, 5, 15]
     
     output_dir = ARG_OUTPUT_DIR
     
@@ -419,11 +438,33 @@ def main(SMPLX_FILENAME_IN):
     
     bpy.ops.object.select_all(action='DESELECT')
     SMPLX_LOCATION = 'S:/Work/GENEA/GENEA2024/beat_v2.0.0/beat_english_v2.0.0/smplxflame_30/'
-    SMPLX_TAKE = SMPLX_LOCATION + SMPLX_FILENAME_IN + '.npz'
-    bpy.ops.object.smplx_add_animation(filepath=SMPLX_TAKE)
+    SMPLX_TAKE = myPath(SMPLX_LOCATION + SMPLX_FILENAME_IN + '.npz')
+    
+    if ARG_NPZ_FILE is not None:
+        SMPLX_TAKE = ARG_NPZ_FILE
+        
+    char_name_mid = re.search(r'(\d+_[a-zA-Z]+)', SMPLX_TAKE.stem)
+    char_name = re.match(r"(\d+)_([a-zA-Z]+)", char_name_mid.group(1))
+
+    texture_type = 'male'
+
+    if char_name.group(2) in female_names:
+        texture_type = 'female'
+    
+    # NEW_SMPLX_PATH = modify_npz(SMPLX_TAKE)
+    
+    bpy.ops.object.smplx_add_animation(filepath=str(SMPLX_TAKE))
+    
+    # bpy.ops.object.smplx_reset_expression_shape()
+    # bpy.ops.object.smplx_reset_poseshapes()
+    
     bpy.ops.object.select_all(action='DESELECT')
     
-    bpy.data.window_managers['WinMan'].smplx_tool.smplx_texture = 'smplx_texture_m_alb.png'
+    if texture_type == 'female':
+        bpy.data.window_managers['WinMan'].smplx_tool.smplx_texture = 'smplx_texture_m_alb.png'
+    else:
+        bpy.data.window_managers['WinMan'].smplx_tool.smplx_texture = 'smplx_texture_f_alb.png'
+        
     bpy.ops.object.smplx_set_texture()
     
     for obj in bpy.data.objects:
@@ -435,28 +476,29 @@ def main(SMPLX_FILENAME_IN):
     hair_blend_file_path = os.path.join(SCRIPT_DIR, 'environments/smplx_genea_male.blend')
     meshes_to_import = ["mask_male", "male_hair"]  # Replace with actual names
 
-    with bpy.data.libraries.load(hair_blend_file_path, link=False) as (data_from, data_to):
-        data_to.objects = [mesh for mesh in data_from.objects if mesh in meshes_to_import]  # Load all available objects
-        print(list(data_from.objects))
-        print(data_to.objects)
-        
-    # Link the imported objects to the active collection
-    for obj in data_to.objects:
-        if obj is not None:
-            print(obj)
-            obj.rotation_euler[0] -= 1.57
-            obj.location = (-0.0125, -0.075, 0.09)
-            bpy.context.collection.objects.link(obj)
-            obj.parent = smplx_char
-            obj.parent_type = "BONE"
-            obj.parent_bone = "head"
+    if os.path.isfile(hair_blend_file_path):
+        with bpy.data.libraries.load(hair_blend_file_path, link=False) as (data_from, data_to):
+            data_to.objects = [mesh for mesh in data_from.objects if mesh in meshes_to_import]  # Load all available objects
+            print(list(data_from.objects))
+            print(data_to.objects)
             
-    obj.location = (-0.005, -0.03, -0.05)
-    
+        # Link the imported objects to the active collection
+        for obj in data_to.objects:
+            if obj is not None:
+                print(obj)
+                obj.rotation_euler[0] -= 1.64
+                obj.location = (-0.0125, -0.075, 0.0925)
+                bpy.context.collection.objects.link(obj)
+                obj.parent = smplx_char
+                obj.parent_type = "BONE"
+                obj.parent_bone = "head"
+                
+        obj.location = (-0.005, -0.03, -0.05)
+
     root_bone = smplx_char.pose.bones['root']
     pelvis_bone = smplx_char.pose.bones['pelvis']
     
-    ARG_DURATION_IN_FRAMES = smplx_char.animation_data.action.frame_range.y
+    # ARG_DURATION_IN_FRAMES = smplx_char.animation_data.action.frame_range.y
     output_name = smplx_char.name
     
     smplx_mesh = smplx_char.children[0]
@@ -474,29 +516,9 @@ def main(SMPLX_FILENAME_IN):
         ARG_MAIN_AUDIO_FILE
     except:
         ARG_MAIN_AUDIO_FILE = ''
-        
-    try:
-        ARG_INTR_AUDIO_FILE
-    except:
-        ARG_INTR_AUDIO_FILE = ''
     
     if ARG_MAIN_AUDIO_FILE and not IS_SERVER:
-        AUDIO1_NAME = os.path.basename(ARG_MAIN_AUDIO_FILE)
         load_data.load_audio(str(ARG_MAIN_AUDIO_FILE), 1)
-        audio1 = bpy.data.sounds[AUDIO1_NAME]
-        
-    if ARG_INTR_AUDIO_FILE and not IS_SERVER:
-        AUDIO2_NAME = os.path.basename(ARG_INTR_AUDIO_FILE)
-        load_data.load_audio(str(ARG_INTR_AUDIO_FILE), 2)
-        audio2 = bpy.data.sounds[AUDIO2_NAME]
-    
-#    bpy.context.scene.sequence_editor.sequences_all['AudioClip1'].volume = 10
-    bpy.context.scene.sequence_editor.sequences_all['AudioClip2'].volume = 0
-    
-    framerate = bpy.context.scene.render.fps
-    
-    audio_samples1 = edit_audio.load_and_fix_audio(ARG_MAIN_AUDIO_FILE, framerate)
-    audio_samples2 = edit_audio.load_and_fix_audio(ARG_INTR_AUDIO_FILE, framerate)
             
     MAIN_CAM_ROT = [0, 0, 0]
     CAM_POS = Vector((
@@ -521,45 +543,21 @@ def main(SMPLX_FILENAME_IN):
     mainCam.location[1] += 1.875
     mainCam.location[2] += 0.4
         
-    total_frames1 = smplx_char.animation_data.action.frame_range.y
-    total_frames2 = smplx_char.animation_data.action.frame_range.y
-    ARG_DURATION_IN_FRAMES = math.floor(min([ARG_DURATION_IN_FRAMES, total_frames1, total_frames2]))
-        
     main_fp = render_video(
         str(output_dir), 
+        ARG_FRAMERATE,
         ARG_IMAGE, 
         ARG_VIDEO, 
-        output_name + '_4x3_' + str(ARG_RESOLUTION_Y),
+        output_name + str(ARG_RESOLUTION_Y),
         ARG_START_FRAME, 
         ARG_DURATION_IN_FRAMES, 
         ARG_RESOLUTION_X, 
         ARG_RESOLUTION_Y)
-    
-    # mainCam.location[1] -= 2.675
-    # mainCam.location[2] -= 0.25
-    
-    # mainCam.location[1] += 2.375
-    # mainCam.location[2] += 0.25
-    
-    # main_fp = render_video(
-    #     str(output_dir), 
-    #     ARG_IMAGE, 
-    #     ARG_VIDEO, 
-    #     output_name + '_4x3',
-    #     ARG_START_FRAME, 
-    #     ARG_DURATION_IN_FRAMES, 
-    #     640, 
-    #     480)
         
     end = time.time()
     all_time = end - start
     print("output_file", str(list(output_dir.glob("*"))[0]), flush=True)
     print(all_time)
-
-
-#Code line
-#SMPLX_FILENAME = '28_tiffnay_0_2_2'
-#main()
 
 def extract_segment(file_name):
     try:
@@ -586,16 +584,43 @@ def filter_csv_by_type(file_path, match_type="test"):
         print(f"Error: {e}")
         return []
 
-SCRIPT_DIR = myPath(bpy.context.space_data.text.filepath).parents[0]
+def extract_unique_names(file_path):
+    unique_names = {}
+    unique_ids = {}
+    unique_list = {}
+    
+    # with open(file_path, "r") as file:
+    for line in file_path:
+        # Search for names in the pattern: number_name
+        match = re.search(r'(\d+_[a-zA-Z]+)', line)
+        if match:
+            idname = match.group(1)
+            
+            match2 = re.match(r"(\d+)_([a-zA-Z]+)", idname)
+            id = match2.group(1)
+            name = match2.group(2)
+            
+            # Check if "test" is in the same line (assuming it's in the next column)
+            if name not in unique_names:
+                unique_names[name] = line.strip() 
+                unique_ids[id] = line.strip() # Store the full matching line if needed
+                unique_list[idname] = line.strip()
+
+    return list(unique_names.keys()), list(unique_ids.keys()), list(unique_list.values())
+
+if bpy.ops.text.run_script.poll():
+    SCRIPT_DIR = myPath(bpy.context.space_data.text.filepath).parents[0]
+else:
+    SCRIPT_DIR = myPath(os.path.realpath(__file__)).parents[0]
+
 file_path = 'S://Work//GENEA//GENEA2024//beat_v2.0.0//beat_english_v2.0.0//train_test_split.csv'
 ARG_OUTPUT_DIR = SCRIPT_DIR / 'output/Leaderboard/SMPLX/Updated'
 
-# # # Call the function and print the results
+female_names = ['kieks', 'ayana', 'luqi', 'hailing', 'kexin', 'goto', 'yingqing', 'tiffnay', 'katya', 'carla', 'sophie', 'miranda']
+male_names = ['wayne', 'nidal', 'zhao', 'lu', 'carlos', 'jorge', 'itoi', 'daiki', 'li', 'scott', 'solomon', 'lawrence', 'stewart']
+
 matches = filter_csv_by_type(file_path)
-# print("Matches from the 1st column where 'type' is 'test':")
-# print(len(matches))
-# print(matches)
-i = 0
+unique_names_list, unique_ids_list, unique_entry_list = extract_unique_names(matches)
 
 all_start = time.time()
 
@@ -613,38 +638,20 @@ for obj in data_to.objects:
 
 # bpy.utils.register_class(SequentialRenderOperator)
 # bpy.ops.render.sequential_animations()
-for File in matches:
-    if (i == 85): # was 87
-        print(File)
-        SMPLX_FILENAME_IN = File
-        main(SMPLX_FILENAME_IN)
-        clear_character()
-        
-    if (i == 126):
-        print(File)
-        SMPLX_FILENAME_IN = File
-        main(SMPLX_FILENAME_IN)
-        clear_character()
-        all_end = time.time()
-        allL_time = all_end - all_start
-        print(allL_time)
-    #     raise KeyboardInterrupt
-        
-    # if (i < 95):
-    #     i += 1
-    #     continue
+
+# for File in unique_entry_list:
+#     print(File)
+#     char_name_mid = re.search(r'(\d+_[a-zA-Z]+)', File)
+#     char_name = re.match(r"(\d+)_([a-zA-Z]+)", char_name_mid.group(1))
     
-    # if (i == 123):
-    #     all_end = time.time()
-    #     allL_time = all_end - all_start
-    #     print(allL_time)
-    #     raise KeyboardInterrupt
+#     texture_type = 'male'
     
-    i += 1
-    # print(File)
-    # SMPLX_FILENAME_IN = File
-    # main()
-    # clear_character()
+#     if char_name.group(2) in female_names:
+#         texture_type = 'female'
+    
+#     SMPLX_FILENAME_IN = File
+#     main(SMPLX_FILENAME_IN)
+#     clear_character()
     
 #     for Output_File in list(ARG_OUTPUT_DIR.glob("*")):
 #         print(Output_File)
@@ -652,7 +659,8 @@ for File in matches:
 #         if segment in File:
 # #           print("Extracted segment:", segment)
 #             print(Output_File.stem)
-#             main()
+#             main(SMPLX_FILENAME_IN)
+#             clear_character()
     
 #print(len(str(list(ARG_OUTPUT_DIR.glob("*"))[0])))
 #print(str(list(ARG_OUTPUT_DIR.glob("*"))))
@@ -669,4 +677,5 @@ for File in matches:
 ##        print("Extracted segment:", segment)
 #        print(Output_File.stem)
 
-# main()
+main()
+clear_character()

@@ -12,7 +12,7 @@ import edit_character
 importlib.reload(edit_character)
 
 def load_audio(filepath, name):
-    bpy.context.scene.sequence_editor.sequences.new_sound(
+    audio_strip = bpy.context.scene.sequence_editor.sequences.new_sound(
         name='AudioClip' + str(name),
         filepath=filepath,
         channel=name,

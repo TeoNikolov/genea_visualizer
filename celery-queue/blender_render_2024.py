@@ -14,6 +14,14 @@ import importlib
 import csv
 import re
 
+from bpy.app.handlers import persistent
+
+@persistent
+def load_handler(dummy):
+    print("Load Handler:", bpy.data.filepath)
+
+bpy.app.handlers.load_post.append(load_handler)
+
 if bpy.ops.text.run_script.poll():
     script_dir = myPath(bpy.context.space_data.text.filepath).parents[0]
 else:
@@ -59,51 +67,44 @@ def clear_scene():
 def create_sequencer():
     bpy.context.scene.sequence_editor_create()
     
-def set_SMPLX_name(filename):
-    SMPLX_FILENAME = filename
+def render_video(output_dir, picture, video, filename_token, render_frame_start, render_frame_length, res_x, res_y):
+    scene = bpy.context.scene
+    render = scene.render
     
-def get_SMPLX_name():
-    return SMPLX_FILENAME
+    render.engine = 'CYCLES'
+    scene.cycles.device = 'GPU'
+    render.resolution_x=int(res_x)
+    render.resolution_y=int(res_y)
+    render.fps = 30
+    scene.frame_start = render_frame_start
+    scene.frame_set(render_frame_start)
+    scene.display.shading.show_specular_highlight = False
+    render.image_settings.color_depth = '16'
     
-def set_Output_dir(InOutputDir):
-    ARG_OUTPUT_DIR = InOutputDir
-    
-def get_Output_dir():
-    return ARG_OUTPUT_DIR
-    
-def render_video(output_dir, picture, video, filename_token, actor1, actor2, render_frame_start, render_frame_length, res_x, res_y):
-    bpy.context.scene.render.engine = 'CYCLES'
-    bpy.context.scene.cycles.device = 'GPU'
-    bpy.context.scene.render.resolution_x=int(res_x)
-    bpy.context.scene.render.resolution_y=int(res_y)
-    bpy.context.scene.render.fps = 30
-    bpy.context.scene.frame_start = render_frame_start
-    bpy.context.scene.frame_set(render_frame_start)
-    bpy.context.scene.display.shading.show_specular_highlight = False
     if render_frame_length > 0:
-        bpy.context.scene.frame_end = render_frame_start + render_frame_length
+        scene.frame_end = render_frame_start + render_frame_length
     
     main_filepath = os.path.join(output_dir, '{}_main-agent'.format(filename_token))
     
     if picture:
-        bpy.context.scene.render.image_settings.file_format='PNG'
+        render.image_settings.file_format='PNG'
         create_camera.get_camera('Main_cam')
-        bpy.context.scene.render.filepath = main_filepath
+        render.filepath = main_filepath
         bpy.ops.render.render(write_still=True)
     
     if video:
-        bpy.context.scene.render.image_settings.file_format='MP4'
+        render.image_settings.file_format='MP4'
         print(f"total_frames {render_frame_length}", flush=True)
-        bpy.context.scene.render.image_settings.file_format='FFMPEG'
-        bpy.context.scene.render.ffmpeg.format='MPEG4'
-        bpy.context.scene.render.ffmpeg.codec = "H264"
-        bpy.context.scene.render.ffmpeg.ffmpeg_preset='REALTIME'
-        bpy.context.scene.render.ffmpeg.constant_rate_factor='HIGH'
-        bpy.context.scene.render.ffmpeg.audio_codec='MP3'
-        bpy.context.scene.render.ffmpeg.gopsize = 30
-        bpy.context.scene.display.shading.color_type = 'TEXTURE'
+        render.image_settings.file_format='FFMPEG'
+        render.ffmpeg.format='MPEG4'
+        render.ffmpeg.codec = "H264"
+        render.ffmpeg.ffmpeg_preset='REALTIME'
+        render.ffmpeg.constant_rate_factor='HIGH'
+        render.ffmpeg.audio_codec='MP3'
+        render.ffmpeg.gopsize = 30
+        scene.display.shading.color_type = 'TEXTURE'
         create_camera.get_camera('Main_cam')
-        bpy.context.scene.render.filepath = main_filepath
+        render.filepath = main_filepath
         bpy.ops.render.render(animation=True, write_still=True)
     return main_filepath
 
@@ -195,7 +196,6 @@ def main():
     assert "." not in output_name, "No period (.) allowed in the output filename. The script sets the extensions automatically."
     assert "/" not in output_name and "\\" not in output_name, "No directories allowed in output filename. Filename contains a slash \"/\" or \"\\\""
     
-    SMPLX_FILENAME_IN = get_SMPLX_name()
     SMPLX_FILENAME_IN = "1_wayne_0_73_73"
     
     bpy.ops.object.select_all(action='DESELECT')
@@ -263,12 +263,22 @@ def main():
             
             bubble2.scale = (a2s, a2s, a2s)
             bubble2.keyframe_insert(data_path='scale', frame=i)
+                
+    blend_file_path = "S:/Work/GENEA2022/GENEA2023VIZoutput/IndoorEnvironment_tilted.blend"
+    
+    with bpy.data.libraries.load(blend_file_path, link=False) as (data_from, data_to):
+        data_to.objects = list(data_from.objects)  # Load all available objects
+
+    # Link the imported objects to the active collection
+    for obj in data_to.objects:
+        if obj is not None:
+            bpy.context.collection.objects.link(obj)
             
     MAIN_CAM_ROT = [0, 0, 0]
     CAM_POS = Vector((
         pelvis_bone.location[0], 
         pelvis_bone.location[1], 
-        pelvis_bone.location[2])) + Vector((0, -0.15, 3))
+        pelvis_bone.location[2])) + Vector((0, -0.15, 4))
     
     create_scene.setup_scene(
         CAM_POS,
@@ -276,7 +286,15 @@ def main():
         ARG_PLANESIZE,
         ARG_LIGHTLOCATION)
         
-    create_scene.add_light(ARG_LIGHTTYPE, ARG_LIGHTRADIUS, ARG_LIGHTPOSITION)
+#    create_scene.add_light(ARG_LIGHTTYPE, ARG_LIGHTRADIUS, ARG_LIGHTPOSITION)
+
+    bpy.ops.object.select_all(action='DESELECT')
+    
+    smplx_char.select_set(True)
+    mainCam = bpy.data.objects['Main_cam']
+    mainCam.select_set(True)
+    
+    bpy.ops.transform.rotate(value=-1.57, orient_axis='X')
         
     total_frames1 = smplx_char.animation_data.action.frame_range.y
     total_frames2 = smplx_char.animation_data.action.frame_range.y
@@ -286,9 +304,7 @@ def main():
         str(output_dir), 
         ARG_IMAGE, 
         ARG_VIDEO, 
-        output_name, 
-        smplx_char.name, 
-        smplx_char.name, 
+        output_name,
         ARG_START_FRAME, 
         ARG_DURATION_IN_FRAMES, 
         ARG_RESOLUTION_X, 
@@ -339,10 +355,10 @@ matches = filter_csv_by_type(file_path)
 #print(matches)
 
 for File in matches:
-    SMPLX_FILENAME = File
+    # SMPLX_FILENAME = File
     print(File)
-#    set_SMPLX_name(File)
-#    print(get_SMPLX_name())
+    # set_SMPLX_name(File)
+    # print(get_SMPLX_name())
     
     for Output_File in list(ARG_OUTPUT_DIR.glob("*")):
 #       print(Output_File)
@@ -366,5 +382,5 @@ for File in matches:
 #    if segment not in matches:
 ##        print("Extracted segment:", segment)
 #        print(Output_File.stem)
-    
+
 main()
