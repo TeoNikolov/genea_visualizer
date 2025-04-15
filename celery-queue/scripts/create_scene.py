@@ -13,6 +13,78 @@ else:
 import create_camera
 importlib.reload(create_camera)
 
+def clear_character():
+    bpy.ops.object.select_all(action='DESELECT')
+    
+    smplx_char = None
+    
+    for obj in bpy.data.objects:
+        if obj.type == 'ARMATURE':
+            smplx_char = obj
+            break
+    
+    if smplx_char is None:
+        return
+    
+    children = [child for child in smplx_char.children if child.type == 'MESH']
+    for mesh_obj in children:
+        # Step 2: Remove Materials from Mesh
+        if mesh_obj.data.materials:
+            for mat in mesh_obj.data.materials:
+                if mat:
+                    bpy.data.materials.remove(mat, do_unlink=True)
+        
+        # Step 3: Unlink and delete the mesh object
+        bpy.data.objects.remove(mesh_obj, do_unlink=True)
+
+    # Step 4: Delete animation data if any
+    if smplx_char.animation_data and smplx_char.animation_data.action:
+        action = smplx_char.animation_data.action
+        smplx_char.animation_data_clear()
+        bpy.data.actions.remove(action, do_unlink=True)
+
+    # Step 5: Remove the Armature
+    bpy.data.objects.remove(smplx_char, do_unlink=True)
+    
+    for sound in bpy.data.sounds:
+        bpy.data.sounds.remove(sound, do_unlink=True)
+    
+    for obj_cam in bpy.data.objects:
+        if obj_cam.type == 'CAMERA':
+            cam = obj_cam
+            break
+    
+    bpy.data.objects.remove(cam, do_unlink=True)
+    
+    # bpy.ops.ed.undo_push(message="Cleanup")
+    # bpy.ops.ed.undo()
+    
+    bpy.ops.outliner.orphans_purge(do_recursive=True)
+    # gc.collect()
+
+# cleans up the scene and memory
+def clear_scene():
+    for block in bpy.data.meshes:       bpy.data.meshes.remove(block)
+    for block in bpy.data.materials:    bpy.data.materials.remove(block)
+    for block in bpy.data.textures:     bpy.data.textures.remove(block)
+    for block in bpy.data.images:       bpy.data.images.remove(block)  
+    for block in bpy.data.curves:       bpy.data.curves.remove(block)
+    for block in bpy.data.cameras:      bpy.data.cameras.remove(block)
+    for block in bpy.data.lights:       bpy.data.lights.remove(block)
+    for block in bpy.data.sounds:       bpy.data.sounds.remove(block)
+    for block in bpy.data.armatures:    bpy.data.armatures.remove(block)
+    for block in bpy.data.objects:      bpy.data.objects.remove(block)
+    for block in bpy.data.actions:      bpy.data.actions.remove(block)
+            
+    if bpy.context.object == None:          bpy.ops.object.delete()
+    elif bpy.context.object.mode == 'EDIT': bpy.ops.object.mode_set(mode='OBJECT')
+    elif bpy.context.object.mode == 'POSE': bpy.ops.object.mode_set(mode='OBJECT')
+        
+    bpy.ops.object.select_all(action='SELECT')
+    bpy.ops.object.delete()
+    bpy.ops.sequencer.select_all(action='SELECT')
+    bpy.ops.sequencer.delete()
+
 def setup_scene(
     cam_pos,
     cam_rot,
