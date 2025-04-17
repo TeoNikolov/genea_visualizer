@@ -3,8 +3,10 @@
 - [GENEA Challenge 2020 BVH visualizer](#genea-challenge-2020-bvh-visualizer)
 - [GENEA Challenge 2022 BVH visualizer](#genea-challenge-2022-bvh-visualizer)
 - [GENEA Challenge 2023 BVH visualizer](#genea-challenge-2023-bvh-visualizer)
+- [GENEA Leaderboard 2025 SMPLX visualizer](#GENEA-Leaderboard-2025-SMPLX-visualizer)
   * [Introduction](#introduction)
   * [Blender Script](#blender-script)
+    + [Setup Blender, SMPLX add-on and code](#Setup-Blender-SMPLX-add-on-and-code)
     + [Using Blender UI](#using-blender-ui)
     + [Using command line](#using-command-line)
   * [Miscellaneous scripts](#miscellaneous-scripts)
@@ -15,6 +17,13 @@
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
 # Important Updates
+**16-04-2025:** GENEA Leaderboard 2025
+- Removed `BVH` support
+- Added `SMPLX` support
+- Updated command line arguments
+- Update scene
+- Update rendering
+
 **14-06-2023:** The GENEA Challenge 2023 visualizer receives improved input and output handling of filenames. (The original pre-updated code given to participants can be found [in this release](https://github.com/TeoNikolov/genea_visualizer/releases/tag/genea2023_release_participants)):
 - BVH and WAV audio file input args are now linked to the main agent and interlocutor:
   - `-i1` -> `-imb` (main agent BVH)
@@ -42,37 +51,68 @@ The GENEA Challenge 2022 visualizer is archived at the `archive_2022` branch: ht
   <i>Example output from the visualization server. The indicators above the speakers hint to the viewer that the speaker is engaged in "active speech".</i>
 </p>
 
+# GENEA Leaderboard 2025 SMPLX visualizer
+
 ## Introduction
 
-This repository contains code that can be used to visualize BVH files (with optional audio) using Blender for dyadic interactions. The code was developed for the [GENEA Challenge 2023](https://genea-workshop.github.io/2023/challenge/), and enables reproducing the visualizations used for the challenge stimuli on most platforms. Currently, we provide only one interface for rendering visualizations:
+This repository contains code that can be used to visualize NPZ files (with optional audio) using Blender. The code was developed for the [GENEA Leaderboard 2025](https://genea-workshop.github.io/leaderboard/). Currently, we provide only one interface for rendering visualizations:
 
 - Stand-alone, for using the supplied Blender script with an existing Blender installation
 
 ## Blender Script
 
 The Blender script can be used directly inside Blender, either through a command line interface or Blender's user interface. Using the script directly is useful if you have Blender installed on your system, and you want to play around with the visualizer.
-
+### Setup Blender, SMPLX add-on and code
+1. Install Blender from Steam - current version 4.3.2
+	1. In Steam, open Blender properties and for `launch options` add `-con`, so when you have Blender open you can see the console output
+2. Install addon from SMPLX - (used so far 20220623) current version 20241129 [Link](https://smpl-x.is.tue.mpg.de/download.php)
+	1. Scroll down and search for `Latest Release`
+	2. Download the .zip file
+	3. Open Blender -> Preferences -> Add-ons -> (top right arrow) `Install from Disk...`
+	4. Select the .zip file
+3. Clone this [repository](https://github.com/TeoNikolov/genea_visualizer/tree/dev-2025)
+	1. Latest branch - `dev-2025`
+	2. Main files to look at `Genea_leaderboard.py` and `parser.py`
 ### Using Blender UI
-
-1. Make sure you have `Blender 2.93.9` installed (other versions may work, but this is *not guaranteed*).
-   - You can install Blender from Steam. Set version to 2.93.x in the properties.
-2. Start `Blender` and navigate to the `Scripting` panel above the 3D viewport.
-3. In the panel on the right of the 3D viewport, press `Open` to navigate to the `blender_render_2023.py` script. This script is found inside the `celery-queue` folder.
-4. Tweak the settings in `main()` below the comment block that reads "SET ARGUMENTS MANUALLY...".
-5. When ready, run the script by pressing the "play" button at the top to render the scene (this can take a while, so try with fewer frames first).
-6. The rendered video will be saved to the `ARG_OUTPUT_DIR` directory (defaults to the same folder as the BVH file). Filename is computed from `ARG_OUTPUT_NAME`.
-
+1. Start `Blender` and navigate to the `Scripting` panel above the 3D viewport.
+2. In the panel on the right of the 3D viewport, press `Open` to navigate to the `Genea_leaderboard.py` script. This script is found inside the `celery-queue` folder.
+3. Tweaking the settings:
+	1. `LOC 545` below `[INFO] Script is running in Blender UI.`
+	2. In `main(...) - LOC 360`, below the comment block that reads "SET ARGUMENTS MANUALLY...", there are arguments that are taken from a config file `config.json`.
+4. When ready, run the script by pressing the `Play` button at the top to render the scene (this can take a while, so try with fewer frames first).
+5. The rendered video will be saved to the `ARG_OUTPUT_DIR` directory. Filename is taken from loaded filename, but can be taken from `ARG_OUTPUT_NAME`.
 ### Using command line
 It is likely that your machine learning pipeline outputs a bunch of BVH and WAV files, such as during hyperparameter optimization. Instead of processing each BVH/WAV file pair separately through Blender's UI yourself, call Blender with [command line arguments](https://docs.blender.org/manual/en/latest/advanced/command_line/arguments.html) like this (on Windows):
 
-`"<path to Blender executable>" -b --python "<path to 'blender_render_2023.py' script>" -- -imb "<path to main agent BVH file>" -iib "<path to interlocutor BVH file>" -imw "<path to main agent WAV file>" -iiw "<path to interlocutor WAV file>" -v -d 600 -o <directory to save MP4 video in> -n "<output file name>" -m <visualization mode>`
+Open a terminal in the `celery_queue` folder and write:
+`"<path to Blender executable>" -b --python "<path to 'Genea_leaderboard.py' script>" -- [arguments]`
 
-On Windows, you may write something like this (on Windows):
+Arguments are in `parser.py`:
+- `-inf "<path to NPZ file>"
+	- `"C:\...\1_wayne_0_103_103.npz"`
+- `-ind "<path to directory with multiple NPZ files>" 
+	- `"C:\...\samples"` , samples will be taken from folder `samples`
+- `-ina "<path to WAV files>" 
+	- `"C:\...\beat_v2.0.0\beat_english_v2.0.0\wave16k"` 
+- `-o <directory to save MP4 video in> 
+	- `"C:\...\rendered"`, folder will contain all rendered samples
+- `-s`, where to start rendering from. This can be a single int or array or ints
+	- `0`, `"0, 346, 670"` - array length must match with `-d`
+- `-d`, how many frames to render. This can be a single int or array of ints
+	- `100`, `"150, 60, 90"` - array length must match with `-s`
+	- a value of `-1` renders to the last of the sample
+- `-v`, render a `MP4` in output folder
+- `-p`, render a `PNG` in output folder
+- `-rx`, X resolution for video (default: 1440)
+- `-ry`, Y resolution for video (default:1080)
 
-`& "C:\Program Files (x86)\Steam\steamapps\common\Blender\blender.exe" -b --python ./blender_render_2023.py -- -imb "C:\Users\Wolf\Documents\NN_Output\BVH_files\mocap1.bvh" -iib "C:\Users\Wolf\Documents\NN_Output\BVH_files\mocap2.bvh" -imw "C:\Users\Wolf\Documents\NN_Output\audio1.wav" -iiw "C:\Users\Wolf\Documents\NN_Output\audio2.wav" -v -d 600 -o "C:\Users\Wolf\Documents\NN_Output\Rendered\" -n "Output" -m "full_body"`
+There is also a `config.json`, file that can hold some relevant values, so you don't need to write them every time
 
-Tip: Tweak `--duration <frame count>`, to smaller values to decrease render time and speed up your testing.
+On Windows, you may write something like this:
 
+`& "C:\...\Steam\steamapps\common\Blender\blender.exe" -b --python ./Genea_leaderboard.py -- -o "C:\...\rendered" -ind "C:\...\samples" -ina "C:\...\beat_v2.0.0\beat_english_v2.0.0\wave16k" -v -s 0 -d 10
+
+Tip: Tweak `-d, --duration <frame count>`, to smaller values to decrease render time and speed up your testing.
 ## Miscellaneous scripts
 During the development of the visualizer, a variety of scripts were used for standardizing the data and processing video stimuli for subjective evaluation. The scripts are included in the `scripts` folder in case anyone needs to use them directly, or as reference, for solving similar tasks. Some scripts were not written in a user-friendly manner, and lack comments and argument parsing. Therefore, using some scripts may be cumbersome, so be ready for some manual fiddling (e.g. replacing hard-coded paths). Writing a short readme inside the scripts folder is on the backlog, but there is no telling when this will happen at the moment.
 

@@ -335,7 +335,7 @@ def set_char_texture(SMPLX_TAKE):
         
     bpy.ops.object.smplx_set_texture()
 
-def main(SMPLX_TAKE_IN: myPath = None):
+def main(AUDIO_LOCATION_IN, SMPLX_TAKE_IN: myPath = None):
     start = time.time()
     config = {}
     
@@ -451,8 +451,7 @@ def main(SMPLX_TAKE_IN: myPath = None):
     create_material.setup_material_nodes(smplx_mesh, script_dir)
     create_material.setup_geometry_nodes(smplx_mesh)
     
-    AUDIO_LOCATION = 'S:/Work/GENEA/GENEA2024/beat_v2.0.0/beat_english_v2.0.0/wave16k/'
-    ARG_MAIN_AUDIO_FILE = AUDIO_LOCATION + SMPLX_TAKE_IN.stem + '.wav' # set to None for no audio
+    ARG_MAIN_AUDIO_FILE = AUDIO_LOCATION_IN + SMPLX_TAKE_IN.stem + '.wav' # set to None for no audio
     
     bpy.context.scene.sequence_editor_create()
     # for sanity, audio is handled using FFMPEG on the server and the input_audio argument should be ignored
@@ -489,19 +488,29 @@ def main(SMPLX_TAKE_IN: myPath = None):
     
     for render_number in range(len(ARG_START_FRAME)):
         if ARG_DURATION_IN_FRAMES[render_number] == -1:
-            ARG_DURATION_IN_FRAMES[render_number] = smplx_char.animation_data.action.frame_range.y
+            main_fp = render_video(
+                str(ARG_OUTPUT_DIR),
+                ARG_FRAMERATE,
+                ARG_IMAGE, 
+                ARG_VIDEO, 
+                output_name,
+                ARG_START_FRAME[render_number],
+                smplx_char.animation_data.action.frame_range.y, 
+                ARG_RESOLUTION_X, 
+                ARG_RESOLUTION_Y)
+            continue
         
         main_fp = render_video(
-            str(ARG_OUTPUT_DIR),
-            ARG_FRAMERATE,
-            ARG_IMAGE, 
-            ARG_VIDEO, 
-            output_name,
-            ARG_START_FRAME[render_number], 
-            ARG_DURATION_IN_FRAMES[render_number], 
-            ARG_RESOLUTION_X, 
-            ARG_RESOLUTION_Y)
-        
+                str(ARG_OUTPUT_DIR),
+                ARG_FRAMERATE,
+                ARG_IMAGE, 
+                ARG_VIDEO, 
+                output_name,
+                ARG_START_FRAME[render_number],
+                ARG_DURATION_IN_FRAMES[render_number], 
+                ARG_RESOLUTION_X, 
+                ARG_RESOLUTION_Y)
+                
     end = time.time()
     all_time = end - start
     print("output_file", str(list(ARG_OUTPUT_DIR.glob("*"))[0]), flush=True)
@@ -548,6 +557,7 @@ if bpy.ops.text.run_script.poll():
     # TEAMS
     # SMPLX_LOCATION = 'S:/Work/GENEA/GENEA2024/Team submissions/The_Semantic_Gesticulator/check/'
     SMPLX_LOCATION = 'S:/Work/GENEA/GENEA2024/Team submissions/DiffuseStyleGesture/check/'
+    AUDIO_LOCATION = 'S:/Work/GENEA/GENEA2024/beat_v2.0.0/beat_english_v2.0.0/wave16k/'
     
     # FILENAME TO LOAD
     SMPLX_FILENAME = '22_luqi_0_2_2'
@@ -559,7 +569,7 @@ if bpy.ops.text.run_script.poll():
     
     SMPLX_TAKE = load_data.check_files_npz(SMPLX_LOCATION, SMPLX_FILENAME, SMPLX_LOCATION_DATASET, SMPLX_FILENAME_DATASET)
     
-    main(SMPLX_TAKE_IN=SMPLX_TAKE)
+    main(AUDIO_LOCATION, SMPLX_TAKE_IN=SMPLX_TAKE)
 else:
     args = parser.parse_args()
     parser.check_args(args)
@@ -571,6 +581,7 @@ else:
     
     ARG_NPZ_FILE = args['input_npz']
     ARG_NPZ_DIR = args['input_npz_dir']
+    ARG_AUDIO_LOCATION = args['audo_wav']
     # ARG_NPZ_DATASET_LOCATION = args['input_npz_dataset_directory']
     # ARG_NPZ_DATASET_FILENAME = ARG_NPZ_FILE
     # ARG_NPZ_DATASET_FILENAME = args['input_npz_dataset_filename']
@@ -582,7 +593,7 @@ else:
     if ARG_NPZ_FILE is not None:
         ARG_NPZ_FILE = load_data.check_files_npz(ARG_NPZ_FILE.parent, ARG_NPZ_FILE.stem, ARG_NPZ_DATASET_LOCATION, ARG_NPZ_DATASET_FILENAME)
         print(ARG_NPZ_FILE)
-        main(SMPLX_TAKE_IN=ARG_NPZ_FILE)
+        main(ARG_AUDIO_LOCATION, SMPLX_TAKE_IN=ARG_NPZ_FILE)
         create_scene.clear_character()
         
     if ARG_NPZ_DIR is not None:
@@ -609,5 +620,5 @@ else:
             ARG_NPZ_FILE = load_data.check_files_npz(SMPLX_LOCATION, os.path.splitext(file)[0], ARG_NPZ_DATASET_LOCATION, ARG_NPZ_DATASET_FILENAME)
             print(ARG_NPZ_FILE)
         
-            main(SMPLX_TAKE_IN=ARG_NPZ_FILE)
+            main(ARG_AUDIO_LOCATION, SMPLX_TAKE_IN=ARG_NPZ_FILE)
             create_scene.clear_character()

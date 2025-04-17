@@ -71,11 +71,11 @@ def parse_args():
     # INPUT
     parser.add_argument('-inf', '--input_npz', help='Input filename of the NPZ file.', type=myPath, default=config.get('input_npz') if 'input_npz' in config else None)
     parser.add_argument('-ind', '--input_npz_dir', help='Input directory with filenames of the NPZ format.', type=myPath, default=config.get('input_npz_dir') if 'input_npz_dir' in config else None)
+    parser.add_argument('-ina', '--audo_wav', help='Input WAV audio file from NPZ.', type=myPath, default=config.get('audo_wav') if 'audo_wav' in config else None)
     # parser.add_argument('-idf', '--input_npz_dataset_filename', help='Input dataset filename.', type=myPath, default=config.get('input_npz_dataset_filename') if 'input_npz_dataset_filename' in config else None)
     # parser.add_argument('-idd', '--input_npz_dataset_directory', help='Input dataset directory.', type=myPath, default=config.get('input_npz_dataset_directory') if 'input_npz_dataset_directory' in config else None)
     parser.add_argument('-ibf', '--input_bvh', help='Input filename of the main agent BVH motion file.', type=myPath, default=config.get('input_bvh') if 'input_bvh' in config else None)
     parser.add_argument('-ibw', '--input_bvh_wav', help='Input filename of the main agent WAV audio file.', type=myPath, default=config.get('input_bvh_wav') if 'input_bvh_wav' in config else None)
-    parser.add_argument('-idw', '--dataset_wav', help='Input filename of the main agent WAV audio file.', type=myPath, default=config.get('input_main_wav') if 'input_main_wav' in config else None)
     
     # OUTPUT
     parser.add_argument('-o', '--output_dir', help='Output directory where the rendered video files will be saved to. Will use "<script directory/output/" if not specified.', type=myPath, default=config.get('output_dir') if 'output_dir' in config else None)
