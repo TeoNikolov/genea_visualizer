@@ -64,21 +64,21 @@ This repository contains code that can be used to visualize NPZ files (with opti
 The Blender script can be used directly inside Blender, either through a command line interface or Blender's user interface. Using the script directly is useful if you have Blender installed on your system, and you want to play around with the visualizer.
 ### Setup Blender, SMPLX add-on and code
 1. Install Blender from Steam - current version 4.3.2
-	1. In Steam, open Blender properties and for `launch options` add `-con`, so when you have Blender open you can see the console output
+	- In Steam, open Blender properties and for `launch options` add `-con`, so when you have Blender open you can see the console output
 2. Install addon from SMPLX - (used so far 20220623) current version 20241129 [Link](https://smpl-x.is.tue.mpg.de/download.php)
-	1. Scroll down and search for `Latest Release`
-	2. Download the .zip file
-	3. Open Blender -> Preferences -> Add-ons -> (top right arrow) `Install from Disk...`
-	4. Select the .zip file
+	- Scroll down and search for `Latest Release`
+	- Download the .zip file
+	- Open Blender -> Preferences -> Add-ons -> (top right arrow) `Install from Disk...`
+	- Select the .zip file
 3. Clone this [repository](https://github.com/TeoNikolov/genea_visualizer/tree/dev-2025)
-	1. Latest branch - `dev-2025`
-	2. Main files to look at `Genea_leaderboard.py` and `parser.py`
+	- Latest branch - `dev-2025`
+	- Main files to look at `Genea_leaderboard.py` and `parser.py`
 ### Using Blender UI
 1. Start `Blender` and navigate to the `Scripting` panel above the 3D viewport.
 2. In the panel on the right of the 3D viewport, press `Open` to navigate to the `Genea_leaderboard.py` script. This script is found inside the `celery-queue` folder.
 3. Tweaking the settings:
-	1. `LOC 545` below `[INFO] Script is running in Blender UI.`
-	2. In `main(...) - LOC 360`, below the comment block that reads "SET ARGUMENTS MANUALLY...", there are arguments that are taken from a config file `config.json`.
+	- `LOC 545` below `[INFO] Script is running in Blender UI.`
+	- In `main(...) - LOC 360`, below the comment block that reads "SET ARGUMENTS MANUALLY...", there are arguments that are taken from a config file `config.json`.
 4. When ready, run the script by pressing the `Play` button at the top to render the scene (this can take a while, so try with fewer frames first).
 5. The rendered video will be saved to the `ARG_OUTPUT_DIR` directory. Filename is taken from loaded filename, but can be taken from `ARG_OUTPUT_NAME`.
 ### Using command line
@@ -88,13 +88,13 @@ Open a terminal in the `celery_queue` folder and write:
 `"<path to Blender executable>" -b --python "<path to 'Genea_leaderboard.py' script>" -- [arguments]`
 
 Arguments are in `parser.py`:
-- `-inf "<path to NPZ file>"
+- `-inf "<path to NPZ file>"`
 	- `"C:\...\1_wayne_0_103_103.npz"`
-- `-ind "<path to directory with multiple NPZ files>" 
+- `-ind "<path to directory with multiple NPZ files>" `
 	- `"C:\...\samples"` , samples will be taken from folder `samples`
-- `-ina "<path to WAV files>" 
+- `-ina "<path to WAV files>"`
 	- `"C:\...\beat_v2.0.0\beat_english_v2.0.0\wave16k"` 
-- `-o <directory to save MP4 video in> 
+- `-o <directory to save MP4 video in>`
 	- `"C:\...\rendered"`, folder will contain all rendered samples
 - `-s`, where to start rendering from. This can be a single int or array or ints
 	- `0`, `"0, 346, 670"` - array length must match with `-d`
@@ -110,7 +110,7 @@ There is also a `config.json`, file that can hold some relevant values, so you d
 
 On Windows, you may write something like this:
 
-`& "C:\...\Steam\steamapps\common\Blender\blender.exe" -b --python ./Genea_leaderboard.py -- -o "C:\...\rendered" -ind "C:\...\samples" -ina "C:\...\beat_v2.0.0\beat_english_v2.0.0\wave16k" -v -s 0 -d 10
+`& "C:\...\Steam\steamapps\common\Blender\blender.exe" -b --python ./Genea_leaderboard.py -- -o "C:\...\rendered" -ind "C:\...\samples" -ina "C:\...\beat_v2.0.0\beat_english_v2.0.0\wave16k" -v -s 0 -d 10`
 
 Tip: Tweak `-d, --duration <frame count>`, to smaller values to decrease render time and speed up your testing.
 ## Miscellaneous scripts
