@@ -85,7 +85,7 @@ The Blender script can be used directly inside Blender, either through a command
 It is likely that your machine learning pipeline outputs a bunch of BVH and WAV files, such as during hyperparameter optimization. Instead of processing each BVH/WAV file pair separately through Blender's UI yourself, call Blender with [command line arguments](https://docs.blender.org/manual/en/latest/advanced/command_line/arguments.html) like this (on Windows):
 
 Open a terminal in the `celery_queue` folder and write:
-`"<path to Blender executable>" -b --python "<path to 'Genea_leaderboard.py' script>" -- [arguments]`
+`& "<path to Blender executable>" -b --python "<path to 'Genea_leaderboard.py' script>" -- [arguments]`
 
 Arguments are in `parser.py`:
 - `-inf "<path to NPZ file>"`
@@ -106,10 +106,10 @@ Arguments are in `parser.py`:
 - `-rx`, X resolution for video (default: 1440)
 - `-ry`, Y resolution for video (default:1080)
 
-There is also a `config.json`, file that can hold some relevant values, so you don't need to write them every time
+There is also a `config.json`, file that can hold some relevant values, so you don't need to write them every time.
+The output name `-n` is currently set based on the name of the input file. 
 
 On Windows, you may write something like this:
-
 `& "C:\...\Steam\steamapps\common\Blender\blender.exe" -b --python ./Genea_leaderboard.py -- -o "C:\...\rendered" -ind "C:\...\samples" -ina "C:\...\beat_v2.0.0\beat_english_v2.0.0\wave16k" -v -s 0 -d 10`
 
 Tip: Tweak `-d, --duration <frame count>`, to smaller values to decrease render time and speed up your testing.
