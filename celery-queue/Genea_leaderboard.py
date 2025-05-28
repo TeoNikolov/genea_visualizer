@@ -1,98 +1,14 @@
 import sys
 import os
 import bpy
-import math
-import random
 from mathutils import Vector
 import time
-import argparse
 import tempfile
 from pathlib import Path as myPath
-import wave
 import numpy as np
 import importlib
-import csv
 import re
-import gc
 import tempfile
-
-class SequentialRenderOperator(bpy.types.Operator):
-    bl_idname = "render.sequential_animations"
-    bl_label = "Render Animations Sequentially"
-    
-    render_queue = []
-    is_rendering = False
-    
-    def execute(self, context):
-        # Define the animations (scenes or cameras to render)
-        self.render_queue = self.setup_queue()
-        
-        # self.render_queue = [
-        #     {"filepath": "//output/animation1_", "start": 1, "end": 100},
-        #     {"filepath": "//output/animation2_", "start": 101, "end": 200},
-        # ]
-        
-        # Start the modal handler
-        context.window_manager.modal_handler_add(self)
-        return {"RUNNING_MODAL"}
-    
-    def modal(self, context, event):
-        if not self.is_rendering:
-            if self.render_queue:
-                
-                clear_character()
-                
-                render_settings = self.render_queue.pop(0)
-                SMPLX_FILENAME_IN = render_settings["filepath"]
-                main() # Should have the take path as parameter for main(SMPLX_FILENAME_IN)
-                
-                # Start rendering
-                self.is_rendering = True
-                bpy.ops.render.render('EXEC_DEFAULT', animation=True)
-            else:
-                # No more renders left, finish operator
-                return {"FINISHED"}
-        
-        # Check if rendering is done
-        if not bpy.app.is_job_running("RENDER"):
-            self.is_rendering = False  # Ready for next render
-
-        return {"RUNNING_MODAL"}
-    
-    def setup_queue(self):
-        render_queue = []
-        
-        IN_SCRIPT_DIR = myPath(bpy.context.space_data.text.filepath).parents[0]
-        in_file_path = 'S://Work//GENEA//GENEA2024//beat_v2.0.0//beat_english_v2.0.0//train_test_split.csv'
-        IN_ARG_OUTPUT_DIR = IN_SCRIPT_DIR / 'output/Leaderboard/SMPLX/Updated'
-        
-        matches = load_data.filter_csv_by_type(in_file_path)
-
-        i = 0
-        for File in matches:
-            if (i == 85): # was 87
-                print(File)
-                render_queue.append({
-                    "filepath": File,
-                })
-                
-            if (i == 126):
-                print(File)
-                render_queue.append({
-                    "filepath": File,
-                })
-            
-            i += 1
-            
-        return render_queue
-
-from bpy.app.handlers import persistent
-
-@persistent
-def load_handler(dummy):
-    print("Load Handler:", bpy.data.filepath)
-
-bpy.app.handlers.load_post.append(load_handler)
 
 if bpy.ops.text.run_script.poll():
     script_dir = myPath(bpy.context.space_data.text.filepath).parents[0]
@@ -114,78 +30,7 @@ import edit_audio
 importlib.reload(edit_audio)
 import parser
 importlib.reload(parser)
-    
-def setup_char_clothes(char):
-    mesh = char.children[0]
-    mat = mesh.material_slots[0].material
-    
-    nodes = mat.node_tree.nodes
-    links = mat.node_tree.links
-    
-    bsdf_node = mat.node_tree.nodes["Principled BSDF"]
-    material_output = mat.node_tree.nodes["Material Output"]
-    
-    for node in nodes:
-        if node.type == 'TEX_IMAGE':
-            texture_diffuse = node
-    
-    texture_displacement = nodes.new(type='ShaderNodeTexImage')
-    multiply_node = nodes.new(type='ShaderNodeVectorMath')
-    multiply_node.operation = 'MULTIPLY'
-    scale_node = nodes.new(type='ShaderNodeVectorMath')
-    scale_node.operation = 'SCALE'
-    attribute_node = nodes.new(type='ShaderNodeAttribute')
-    value_node = nodes.new(type='ShaderNodeValue')
-    divide_node = nodes.new(type='ShaderNodeMath')
-    divide_node.operation = 'DIVIDE'
 
-    # Position the nodes
-    texture_diffuse.location      = (-600, 200)
-    texture_displacement.location = (-600, -100)
-    attribute_node.location       = (-600, -400)
-    value_node.location           = (-400, -500)
-    bsdf_node.location                 = (-200, 200)
-    multiply_node.location        = (-200, -200)
-    divide_node.location          = (-200, -400)
-    scale_node.location           = (0, -200)
-    material_output.location            = (200, -200)
-    
-    try:
-        diffuse_filepath = texture_diffuse.image.filepath
-        if "smplx_texture_f_alb.png" in diffuse_filepath:
-            texture_filename = "smplx_texture_f_disp.png"
-        elif "smplx_texture_m_alb.png" in diffuse_filepath:
-            texture_filename = "smplx_texture_m_disp.png"
-        else:
-            print(f"Could not determine displacement texture from filepath: {diffuse_filepath}")
-            return
-
-        if texture_filename not in bpy.data.images:
-            print(os.path.realpath(__file__))
-            addon_path = os.path.dirname(os.path.realpath(__file__))
-            texture_path = os.path.join(addon_path, "data", texture_filename)
-            texture_displacement.image = bpy.data.images.load(texture_path)
-        else:
-            texture_displacement.image = bpy.data.images[texture_filename]
-
-    except RuntimeError:
-        print(f"Failed to load texture: {texture_path}")
-        return
-
-    attribute_node.attribute_name = "norm"
-    value_node.outputs['Value'].default_value = 10
-    divide_node.inputs[1].default_value = 1000
-
-    # Create connections
-    links.new(texture_diffuse.outputs['Color'], bsdf_node.inputs['Base Color'])
-    links.new(bsdf_node.outputs['BSDF'], material_output.inputs['Surface'])
-    links.new(texture_displacement.outputs['Color'], multiply_node.inputs[0])
-    links.new(attribute_node.outputs['Vector'], multiply_node.inputs[1])
-    links.new(multiply_node.outputs['Vector'], scale_node.inputs['Vector'])
-    links.new(value_node.outputs['Value'], divide_node.inputs[0])
-    links.new(divide_node.outputs['Value'], scale_node.inputs['Scale'])
-    links.new(scale_node.outputs['Vector'], material_output.inputs['Displacement'])
-    
 def render_video(output_dir, framerate, picture, video, filename_token, render_frame_start, render_frame_length, res_x, res_y):
     main_filepath = ''
     
@@ -337,7 +182,6 @@ def set_char_texture(SMPLX_TAKE):
 
 def main(AUDIO_LOCATION_IN, SMPLX_TAKE_IN: myPath = None):
     start = time.time()
-    config = {}
     
     IS_SERVER = "GENEA_SERVER" in os.environ
     if IS_SERVER:
@@ -348,26 +192,21 @@ def main(AUDIO_LOCATION_IN, SMPLX_TAKE_IN: myPath = None):
         SCRIPT_DIR = myPath(bpy.context.space_data.text.filepath).parents[0]
         ARG_OUTPUT_DIR = SCRIPT_DIR / 'output/Leaderboard/SMPLX/Updated'
         
-        config = parser.load_json_config(SCRIPT_DIR)
-        
-        if len(config) == 0:
-            print('No config found! Blender UI will use some default values!')
-        
     ##################################
     ##### SET ARGUMENTS MANUALLY #####
     ##### IF RUNNING BLENDER GUI #####
     ##################################
-    ARG_FRAMERATE = config.get('framerate') if 'framerate' in config else 30
+    ARG_FRAMERATE = 30
     ARG_MAIN_BVH_FILE = ''
     ARG_MAIN_AUDIO_FILE = ''
-    ARG_IMAGE = config.get('png') if 'png' in config else False
-    ARG_VIDEO = config.get('video') if 'video' in config else False
-    ARG_START_FRAME = config.get('start') if 'start' in config else 0
-    ARG_DURATION_IN_FRAMES = config.get('duration') if 'duration' in config else 0
-    ARG_RESOLUTION_X = config.get('res_x') if 'res_x' in config else 1440 #3840
-    ARG_RESOLUTION_Y = config.get('res_y') if 'res_y' in config else 1080 #2160
-    ARG_MODE = config.get('visualization_mode') if 'visualization_mode' in config else 'full_body'
-    ARG_OUTPUT_NAME = config.get('output_name') if 'output_name' in config else 'blender_output_1'
+    ARG_IMAGE = False
+    ARG_VIDEO = False
+    ARG_START_FRAME = 0
+    ARG_DURATION_IN_FRAMES = 0
+    ARG_RESOLUTION_X = 1440 #3840
+    ARG_RESOLUTION_Y = 1080 #2160
+    ARG_MODE = 'full_body'
+    ARG_OUTPUT_NAME = 'blender_output_1'
     
     ARG_PLANESIZE = 10
     ARG_LIGHTLOCATION = [0, 5, 15]
@@ -440,18 +279,29 @@ def main(AUDIO_LOCATION_IN, SMPLX_TAKE_IN: myPath = None):
                 obj.parent_bone = "head"
                 
         obj.location = (-0.005, -0.03, -0.05)
-
-    pelvis_bone = smplx_char.pose.bones['pelvis']
+    
+    data = np.load(str(SMPLX_TAKE_IN), allow_pickle=True)
+    trans = data['trans']  # Shape: (num_frames, 3)
+    print(trans)
+    avg_pelvis_position = trans.mean(axis=0)
+    smplx_char.pose.bones['root'].location[0] -= avg_pelvis_position[0]
+    smplx_char.pose.bones['root'].location[1] -= avg_pelvis_position[2]
+    smplx_char.pose.bones['root'].location[2] -= (avg_pelvis_position[1] - 1.3)
+    
     output_name = smplx_char.name
-    smplx_mesh = smplx_char.children[0]
+    smplx_mesh = smplx_char.children[2]
     
     bpy.context.object.modifiers["Armature"].use_deform_preserve_volume = True
     
     create_material.setup_subdivision_surface(smplx_mesh)
-    create_material.setup_material_nodes(smplx_mesh, script_dir)
+    create_material.setup_material_nodes(smplx_mesh, SCRIPT_DIR)
     create_material.setup_geometry_nodes(smplx_mesh)
     
-    ARG_MAIN_AUDIO_FILE = AUDIO_LOCATION_IN + SMPLX_TAKE_IN.stem + '.wav' # set to None for no audio
+    # this changes 2_scott_0_1_1_sample_1 -> 2_scott_0_1_1
+    # wav_name = SMPLX_TAKE_IN.stem.rsplit('_sample_', 1)[0]
+    # ARG_MAIN_AUDIO_FILE = myPath(str(AUDIO_LOCATION_IN) + '/' + str(wav_name) + '.wav') # set to None for no audio
+    ARG_MAIN_AUDIO_FILE = myPath(str(AUDIO_LOCATION_IN) + '/' + str(SMPLX_TAKE_IN.stem) + '.wav') # set to None for no audio
+    print(ARG_MAIN_AUDIO_FILE)
     
     bpy.context.scene.sequence_editor_create()
     # for sanity, audio is handled using FFMPEG on the server and the input_audio argument should be ignored
@@ -459,15 +309,14 @@ def main(AUDIO_LOCATION_IN, SMPLX_TAKE_IN: myPath = None):
         ARG_MAIN_AUDIO_FILE
     except:
         ARG_MAIN_AUDIO_FILE = ''
+        
+    assert ARG_MAIN_AUDIO_FILE.is_file()
     
     if ARG_MAIN_AUDIO_FILE and not IS_SERVER:
         load_data.load_audio(str(ARG_MAIN_AUDIO_FILE), 1)
-            
-    MAIN_CAM_ROT = [0, 0, 0]
-    CAM_POS = Vector((
-        pelvis_bone.location[0], 
-        pelvis_bone.location[1], 
-        pelvis_bone.location[2])) + Vector((0, -0.375, 4))
+    
+    MAIN_CAM_ROT = [1.57, 0, 0]
+    CAM_POS = Vector((0, -2.45, 1.45))
     
     create_scene.setup_scene(
         CAM_POS,
@@ -478,13 +327,8 @@ def main(AUDIO_LOCATION_IN, SMPLX_TAKE_IN: myPath = None):
     bpy.ops.object.select_all(action='DESELECT')
     
     smplx_char.select_set(True)
-    mainCam = bpy.data.objects['Main_cam']
-    mainCam.select_set(True)
     
     bpy.ops.transform.rotate(value=-1.57, orient_axis='X')
-    
-    mainCam.location[1] += 1.875
-    mainCam.location[2] += 0.4
     
     for render_number in range(len(ARG_START_FRAME)):
         if ARG_DURATION_IN_FRAMES[render_number] == -1:
@@ -542,30 +386,23 @@ for obj in data_to.objects:
     if obj is not None:
         bpy.context.collection.objects.link(obj)
 
-# bpy.utils.register_class(SequentialRenderOperator)
-# bpy.ops.render.sequential_animations()
-
-# DiffuseStyleGesture
-# SG_DIR = 'S://Work//GENEA//GENEA2024//Team submissions//The_Semantic_Gesticulator//data1//zhangzeyi//SG_results_for_GENEA//save_res_all_only_bvh_with_root_height//'
-
-
 if bpy.ops.text.run_script.poll():
     print('[INFO] Script is running in Blender UI.')
     SCRIPT_DIR = myPath(bpy.context.space_data.text.filepath).parents[0]
     ARG_OUTPUT_DIR = SCRIPT_DIR / 'output/Leaderboard/SMPLX/Updated'
     
     # TEAMS
-    # SMPLX_LOCATION = 'S:/Work/GENEA/GENEA2024/Team submissions/The_Semantic_Gesticulator/check/'
+    # SMPLX_LOCATION = 'S:/Work/GENEA/GENEA2024/Team submissions/synthetic_baselines/attenuated/'
     SMPLX_LOCATION = 'S:/Work/GENEA/GENEA2024/Team submissions/DiffuseStyleGesture/check/'
     AUDIO_LOCATION = 'S:/Work/GENEA/GENEA2024/beat_v2.0.0/beat_english_v2.0.0/wave16k/'
     
     # FILENAME TO LOAD
-    SMPLX_FILENAME = '22_luqi_0_2_2'
+    SMPLX_FILENAME = '6_carla_0_65_65'
     
     # DATASET .NPZ
     SMPLX_LOCATION_DATASET = 'S:/Work/GENEA/GENEA2024/beat_v2.0.0/beat_english_v2.0.0/smplxflame_30/'
     SMPLX_FILENAME_DATASET = SMPLX_FILENAME
-    SMPLX_FILENAME_DATASET = '22_luqi_0_2_2'
+    SMPLX_FILENAME_DATASET = '6_carla_0_65_65'
     
     SMPLX_TAKE = load_data.check_files_npz(SMPLX_LOCATION, SMPLX_FILENAME, SMPLX_LOCATION_DATASET, SMPLX_FILENAME_DATASET)
     

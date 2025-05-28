@@ -15,12 +15,14 @@ import edit_character
 importlib.reload(edit_character)
 
 def load_audio(filepath, name):
+    print(filepath)
     audio_strip = bpy.context.scene.sequence_editor.sequences.new_sound(
         name='AudioClip' + str(name),
         filepath=filepath,
-        channel=name,
-        frame_start=0
+        channel=1,
+        frame_start=1
     )
+    audio_strip.mute = False
     
 def load_fbx(filepath, name):
     print(script_dir)
@@ -45,7 +47,7 @@ def load_bvh(filepath):
         global_scale=0.01
     )
     
-def check_files_npz(SMPLX_LOCATION, SMPLX_FILENAME, SMPLX_LOCATION_DATASET = None, SMPLX_FILENAME_DATASET = None) -> myPath:
+def check_files_npz(SMPLX_LOCATION, SMPLX_FILENAME, SMPLX_LOCATION_DATASET = None, SMPLX_FILENAME_DATASET = None, added_gender_in = "neutral") -> myPath:
     SMPLX_TAKE = myPath(str(SMPLX_LOCATION) + '/' + str(SMPLX_FILENAME) + '.npz')
     smplx_loaded_data = np.load(SMPLX_TAKE, allow_pickle=True)
     
@@ -78,7 +80,7 @@ def check_files_npz(SMPLX_LOCATION, SMPLX_FILENAME, SMPLX_LOCATION_DATASET = Non
     os.makedirs(str(SMPLX_LOCATION) + '/body_shape', exist_ok=True)
     # if not os.path.isfile(os.path.join(str(SMPLX_LOCATION) + '/body_shape/', SMPLX_FILENAME)):
     
-    added_gender = 'neutral'
+    added_gender = added_gender_in
     print('Gender should always be "neutral": ' + str(added_gender))
     
     added_model = 'smplx2020'
@@ -131,7 +133,7 @@ def check_files_npz(SMPLX_LOCATION, SMPLX_FILENAME, SMPLX_LOCATION_DATASET = Non
                 trans=added_trans,
                 model=added_model,
                 gender=added_gender,
-                mocap_frame_rate=smplx_loaded_data['mocap_frame_rate'])
+                mocap_frame_rate=added_framrate)
     SMPLX_TAKE = myPath(str(SMPLX_LOCATION) + '/body_shape/' + SMPLX_FILENAME + '.npz')
     print(SMPLX_TAKE)
     

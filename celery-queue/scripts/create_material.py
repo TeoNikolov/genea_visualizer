@@ -53,6 +53,7 @@ def setup_geometry_nodes(char_mesh):
     #     return
 
     # Add a new geometry node group modifier
+    print(char_mesh)
     mod = char_mesh.modifiers.new(name="Geo Norm Modifier", type='NODES')
     
     # Access the node group
@@ -94,6 +95,7 @@ def setup_material_nodes(char_mesh, work_dir):
     #     return
 
     mat = char_mesh.material_slots[0].material
+    print("Material: ", mat)
 
     # Set the displacement method to "Displacement and Bump"
     char_mesh.active_material.displacement_method = 'BOTH'
@@ -126,6 +128,7 @@ def setup_material_nodes(char_mesh, work_dir):
     scale_node = nodes.new(type='ShaderNodeVectorMath')
     scale_node.operation = 'SCALE'
     attribute_node = nodes.new(type='ShaderNodeAttribute')
+    rotate_mesh_node = nodes.new(type='ShaderNodeVectorRotate')
     value_node = nodes.new(type='ShaderNodeValue')
     divide_node = nodes.new(type='ShaderNodeMath')
     divide_node.operation = 'DIVIDE'
@@ -134,16 +137,17 @@ def setup_material_nodes(char_mesh, work_dir):
     texture_diffuse.location      = (-600, 200)
     texture_displacement.location = (-600, -100)
     attribute_node.location       = (-600, -400)
-    value_node.location           = (-400, -500)
+    rotate_mesh_node.location     = (-400, -400)
+    value_node.location           = (-200, -400)
     bsdf_node.location            = (-200, 200)
     multiply_node.location        = (-200, -200)
-    divide_node.location          = (-200, -400)
+    divide_node.location          = (0, -400)
     scale_node.location           = (0, -200)
     material_output.location      = (200, -200)
 
     # Set values
     try:
-        diffuse_filepath = texture_diffuse.image.filepath
+        diffuse_filepath = os.path.join(work_dir, "textures\\SMPLX\\", str(texture_diffuse.image))
         if "smplx_texture_f_alb.png" in diffuse_filepath:
             texture_filename = "smplx_texture_f_disp.png"
         elif "smplx_texture_m_alb.png" in diffuse_filepath:
@@ -165,12 +169,16 @@ def setup_material_nodes(char_mesh, work_dir):
     attribute_node.attribute_name = "norm"
     value_node.outputs['Value'].default_value = 10
     divide_node.inputs[1].default_value = 1000
+    
+    rotate_mesh_node.inputs[2].default_value = [1, 0, 0]
+    rotate_mesh_node.inputs[3].default_value = 1.57
 
     # Create connections
     links.new(texture_diffuse.outputs['Color'], bsdf_node.inputs['Base Color'])
     links.new(bsdf_node.outputs['BSDF'], material_output.inputs['Surface'])
     links.new(texture_displacement.outputs['Color'], multiply_node.inputs[0])
-    links.new(attribute_node.outputs['Vector'], multiply_node.inputs[1])
+    links.new(attribute_node.outputs['Vector'], rotate_mesh_node.inputs[0])
+    links.new(rotate_mesh_node.outputs['Vector'], multiply_node.inputs[1])
     links.new(multiply_node.outputs['Vector'], scale_node.inputs['Vector'])
     links.new(value_node.outputs['Value'], divide_node.inputs[0])
     links.new(divide_node.outputs['Value'], scale_node.inputs['Scale'])
