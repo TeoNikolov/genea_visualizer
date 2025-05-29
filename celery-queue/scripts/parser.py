@@ -81,6 +81,11 @@ def parse_args():
                         action=argparse.BooleanOptionalAction, default=False)
     
     argv = sys.argv
+    
+    # argv starts with [blender.exe, '-con', '--debug-memory'], which is len of 3
+    if (len(argv) <= 3):
+        return vars()
+    
     argv = argv[argv.index("--") + 1 :]
     
     final_args = vars(parser.parse_args(args=argv))

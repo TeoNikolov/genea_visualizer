@@ -14,15 +14,25 @@ else:
 import edit_character
 importlib.reload(edit_character)
 
-def load_audio(filepath, name):
-    print(filepath)
-    audio_strip = bpy.context.scene.sequence_editor.sequences.new_sound(
-        name='AudioClip' + str(name),
-        filepath=filepath,
-        channel=1,
-        frame_start=1
-    )
-    audio_strip.mute = False
+def load_audio(AUDIO_LOCATION_IN, SMPLX_TAKE_IN):
+    # wav_name = SMPLX_TAKE_IN.stem.rsplit('_sample_', 1)[0] # this changes "2_scott_0_1_1_sample_1" to "2_scott_0_1_1"
+    
+    # ARG_MAIN_AUDIO_FILE = myPath(str(AUDIO_LOCATION_IN) + '/' + str(wav_name) + '.wav') # set to None for no audio
+    ARG_MAIN_AUDIO_FILE = myPath(str(AUDIO_LOCATION_IN) + '/' + str(SMPLX_TAKE_IN.stem) + '.wav') # set to None for no audio
+    
+    print(ARG_MAIN_AUDIO_FILE)      
+    assert ARG_MAIN_AUDIO_FILE.is_file()
+    
+    bpy.context.scene.sequence_editor_create()  
+    
+    if ARG_MAIN_AUDIO_FILE:
+        audio_strip = bpy.context.scene.sequence_editor.sequences.new_sound(
+            name='AudioClip' + str(1),
+            filepath=str(ARG_MAIN_AUDIO_FILE),
+            channel=1,
+            frame_start=1
+        )
+        audio_strip.mute = False
     
 def load_fbx(filepath, name):
     print(script_dir)

@@ -87,9 +87,7 @@ def clear_scene():
 
 def setup_scene(
     cam_pos,
-    cam_rot,
-    plane_size,
-    InLocation):
+    cam_rot):
     
     # Camera Main
     name = 'Main'

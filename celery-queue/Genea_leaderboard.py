@@ -146,39 +146,20 @@ def compute_render_time(directory: str) ->str:
     return renderTime
 
 def detect_files(directory: str) ->str:
+    output_list = []
     
     if directory is not str:
         directory = str(directory)
     
     files = [f for f in os.listdir(directory)]
-    return files
-
-def set_char_texture(SMPLX_TAKE):
-    if SMPLX_TAKE is None:
-        bpy.data.window_managers['WinMan'].smplx_tool.smplx_texture = 'smplx_texture_f_alb.png'
-        return
     
-    # File format must start with 1_name_0_#_#_... .npz, otherise this will fail
-    char_name_mid = re.search(r'(\d+_[a-zA-Z]+)', SMPLX_TAKE.stem)
-    char_name = re.match(r"(\d+)_([a-zA-Z]+)", char_name_mid.group(1))
-    
-    print(char_name_mid)
-    print(char_name)
-    
-    female_names = ['kieks', 'ayana', 'luqi', 'hailing', 'kexin', 'goto', 'yingqing', 'tiffnay', 'katya', 'carla', 'sophie', 'miranda']
-    male_names = ['wayne', 'nidal', 'zhao', 'lu', 'carlos', 'jorge', 'itoi', 'daiki', 'li', 'scott', 'solomon', 'lawrence', 'stewart']
-    
-    texture_type = 'male'
-    if char_name.group(2) in female_names:
-        texture_type = 'female'
-        print(texture_type)
-    
-    if texture_type == 'female':
-        bpy.data.window_managers['WinMan'].smplx_tool.smplx_texture = 'smplx_texture_m_alb.png'
-    else:
-        bpy.data.window_managers['WinMan'].smplx_tool.smplx_texture = 'smplx_texture_f_alb.png'
-        
-    bpy.ops.object.smplx_set_texture()
+    if files is not None:
+        for file in files:
+            parts = file.replace(".mp4", "").split("_")
+            result = "_".join(parts[1:-1])
+            output_list.append(result)
+            
+    return output_list
 
 def main(AUDIO_LOCATION_IN, SMPLX_TAKE_IN: myPath = None):
     start = time.time()
@@ -190,43 +171,27 @@ def main(AUDIO_LOCATION_IN, SMPLX_TAKE_IN: myPath = None):
     if bpy.ops.text.run_script.poll():
         print('[INFO] Script is running in Blender UI.')
         SCRIPT_DIR = myPath(bpy.context.space_data.text.filepath).parents[0]
-        ARG_OUTPUT_DIR = SCRIPT_DIR / 'output/Leaderboard/SMPLX/Updated'
+    elif not bpy.ops.text.run_script.poll():
+        print('[INFO] Script is running from command line.')
+        SCRIPT_DIR = myPath(os.path.realpath(__file__)).parents[0]
         
     ##################################
     ##### SET ARGUMENTS MANUALLY #####
     ##### IF RUNNING BLENDER GUI #####
     ##################################
-    ARG_FRAMERATE = 30
-    ARG_MAIN_BVH_FILE = ''
-    ARG_MAIN_AUDIO_FILE = ''
-    ARG_IMAGE = False
-    ARG_VIDEO = False
-    ARG_START_FRAME = 0
-    ARG_DURATION_IN_FRAMES = 0
-    ARG_RESOLUTION_X = 1440 #3840
-    ARG_RESOLUTION_Y = 1080 #2160
-    ARG_MODE = 'full_body'
-    ARG_OUTPUT_NAME = 'blender_output_1'
-    
-    ARG_PLANESIZE = 10
-    ARG_LIGHTLOCATION = [0, 5, 15]
-
-    if not bpy.ops.text.run_script.poll():
-        print('[INFO] Script is running from command line.')
-        SCRIPT_DIR = myPath(os.path.realpath(__file__)).parents[0]
-        args = parser.parse_args()
-        ARG_FRAMERATE = args['framerate']
-        ARG_MAIN_BVH_FILE = args['input_bvh']
-        ARG_MAIN_AUDIO_FILE = args['input_bvh_wav'].resolve() if args['input_bvh_wav'] else None
-        ARG_IMAGE = args['png']
-        ARG_VIDEO = args['video']
-        ARG_START_FRAME = args['start']
-        ARG_DURATION_IN_FRAMES = args['duration']
-        ARG_RESOLUTION_X = args['res_x']
-        ARG_RESOLUTION_Y = args['res_y']
-        ARG_MODE = args['visualization_mode']
-        ARG_OUTPUT_DIR = args['output_dir'].resolve() if args['output_dir'] else SCRIPT_DIR / 'output/'
-        ARG_OUTPUT_NAME = args['output_name']
+    args = parser.parse_args()
+    ARG_FRAMERATE = args['framerate'] if 'framerate' in args else 30
+    ARG_MAIN_BVH_FILE = args['input_bvh'] if 'input_bvh' in args else ''
+    ARG_MAIN_AUDIO_FILE = args['input_bvh_wav'].resolve() if 'input_bvh_wav' in args else ''
+    ARG_IMAGE = args['png'] if 'png' in args else False
+    ARG_VIDEO = args['video'] if 'video' in args else False
+    ARG_START_FRAME = args['start'] if 'start' in args else [0]
+    ARG_DURATION_IN_FRAMES = args['duration'] if 'duration' in args else [0]
+    ARG_RESOLUTION_X = args['res_x'] if 'res_x' in args else 1440 #3840
+    ARG_RESOLUTION_Y = args['res_y'] if 'res_y' in args else 1080 #2160
+    ARG_MODE = args['visualization_mode'] if 'visualization_mode' in args else 'full_body'
+    ARG_OUTPUT_DIR = args['output_dir'].resolve() if 'output_dir' in args else SCRIPT_DIR / 'output/Leaderboard/SMPLX/Updated'
+    ARG_OUTPUT_NAME = args['output_name'] if 'output_name' in args else 'blender_output_1'
     
     assert "." not in str(ARG_OUTPUT_NAME), "No period (.) allowed in the output filename. The script sets the extensions automatically."
     assert "/" not in str(ARG_OUTPUT_NAME) and "\\" not in str(ARG_OUTPUT_NAME), "No directories allowed in output filename. Filename contains a slash \"/\" or \"\\\""
@@ -235,54 +200,29 @@ def main(AUDIO_LOCATION_IN, SMPLX_TAKE_IN: myPath = None):
     if not os.path.exists(str(ARG_OUTPUT_DIR)):
         os.mkdir(str(ARG_OUTPUT_DIR))
     
+    # This is unused. Can be used to render everything missing from the output folder.
     output_dir_files = detect_files(ARG_OUTPUT_DIR)
-    output_dir_files_short = []
     
-    if output_dir_files is not None:
-        for file in output_dir_files:
-            parts = file.replace(".mp4", "").split("_")
-            result = "_".join(parts[1:-1])
-            output_dir_files_short.append(result)
-    
-    bpy.ops.object.select_all(action='DESELECT')
     bpy.ops.object.smplx_add_animation(filepath=str(SMPLX_TAKE_IN))
-    # bpy.ops.object.smplx_reset_expression_shape()
-    # bpy.ops.object.smplx_reset_poseshapes()
     bpy.ops.object.select_all(action='DESELECT')
+    edit_character.set_char_texture(SMPLX_TAKE_IN)
     
-    set_char_texture(SMPLX_TAKE_IN)
-    
+    # Select only armature
     for obj in bpy.data.objects:
         if obj.type == 'ARMATURE':
             smplx_char = obj
+            print("This is the selected armature: ", smplx_char)
             break
-        
-    # Add hair and mask
-    hair_blend_file_path = os.path.join(SCRIPT_DIR, 'environments/smplx_genea_male_simplified.blend')
-    meshes_to_import = ["mask_male", "male_hair"]  # Replace with actual names
-
-    if os.path.isfile(hair_blend_file_path):
-        with bpy.data.libraries.load(hair_blend_file_path, link=False) as (data_from, data_to):
-            data_to.objects = [mesh for mesh in data_from.objects if mesh in meshes_to_import]  # Load all available objects
-            print(list(data_from.objects))
-            print(data_to.objects)
-            
-        # Link the imported objects to the active collection
-        for obj in data_to.objects:
-            if obj is not None:
-                print(obj)
-                obj.rotation_euler[0] -= 1.64
-                obj.location = (-0.0125, -0.075, 0.0925)
-                bpy.context.collection.objects.link(obj)
-                obj.parent = smplx_char
-                obj.parent_type = "BONE"
-                obj.parent_bone = "head"
-                
-        obj.location = (-0.005, -0.03, -0.05)
     
+    smplx_char.select_set(True)
+    bpy.ops.transform.rotate(value=-1.57, orient_axis='X')
+    
+    # Load hair and mask onto mesh
+    edit_character.load_hair_and_mask(smplx_char, SCRIPT_DIR)
+    
+    # Normalize hips location to center of scene
     data = np.load(str(SMPLX_TAKE_IN), allow_pickle=True)
     trans = data['trans']  # Shape: (num_frames, 3)
-    print(trans)
     avg_pelvis_position = trans.mean(axis=0)
     smplx_char.pose.bones['root'].location[0] -= avg_pelvis_position[0]
     smplx_char.pose.bones['root'].location[1] -= avg_pelvis_position[2]
@@ -293,42 +233,18 @@ def main(AUDIO_LOCATION_IN, SMPLX_TAKE_IN: myPath = None):
     
     bpy.context.object.modifiers["Armature"].use_deform_preserve_volume = True
     
+    # Add clothes to mesh
     create_material.setup_subdivision_surface(smplx_mesh)
     create_material.setup_material_nodes(smplx_mesh, SCRIPT_DIR)
     create_material.setup_geometry_nodes(smplx_mesh)
     
-    # this changes 2_scott_0_1_1_sample_1 -> 2_scott_0_1_1
-    # wav_name = SMPLX_TAKE_IN.stem.rsplit('_sample_', 1)[0]
-    # ARG_MAIN_AUDIO_FILE = myPath(str(AUDIO_LOCATION_IN) + '/' + str(wav_name) + '.wav') # set to None for no audio
-    ARG_MAIN_AUDIO_FILE = myPath(str(AUDIO_LOCATION_IN) + '/' + str(SMPLX_TAKE_IN.stem) + '.wav') # set to None for no audio
-    print(ARG_MAIN_AUDIO_FILE)
+    # Audio
+    load_data.load_audio(AUDIO_LOCATION_IN, SMPLX_TAKE_IN)
     
-    bpy.context.scene.sequence_editor_create()
-    # for sanity, audio is handled using FFMPEG on the server and the input_audio argument should be ignored
-    try:
-        ARG_MAIN_AUDIO_FILE
-    except:
-        ARG_MAIN_AUDIO_FILE = ''
-        
-    assert ARG_MAIN_AUDIO_FILE.is_file()
-    
-    if ARG_MAIN_AUDIO_FILE and not IS_SERVER:
-        load_data.load_audio(str(ARG_MAIN_AUDIO_FILE), 1)
-    
+    # Camera
     MAIN_CAM_ROT = [1.57, 0, 0]
     CAM_POS = Vector((0, -2.45, 1.45))
-    
-    create_scene.setup_scene(
-        CAM_POS,
-        MAIN_CAM_ROT,
-        ARG_PLANESIZE,
-        ARG_LIGHTLOCATION)
-
-    bpy.ops.object.select_all(action='DESELECT')
-    
-    smplx_char.select_set(True)
-    
-    bpy.ops.transform.rotate(value=-1.57, orient_axis='X')
+    create_camera.add_camera(CAM_POS, MAIN_CAM_ROT, 'Main')
     
     for render_number in range(len(ARG_START_FRAME)):
         if ARG_DURATION_IN_FRAMES[render_number] == -1:
